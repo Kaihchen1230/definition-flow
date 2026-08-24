@@ -1,44 +1,34 @@
-import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { demoRequestId, fetchDemoActors, reloadStartupInvestmentDefinitions, resetDemoData } from "../api/demo";
-import { fetchEvaluatedUi } from "../api/requestCases";
+import { useEffect, useMemo } from "react";
+import {
+  demoRequestId,
+  useFetchDemoActorsQuery,
+  useFetchEvaluatedUiQuery,
+  useReloadStartupInvestmentDefinitionsMutation,
+  useResetDemoDataMutation,
+} from "../services/approvalApi";
 import { RequestWorkbench } from "../features/request-workbench/RequestWorkbench";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { setActorId, setSelectedPageId } from "../features/request-workbench/requestWorkbenchSlice";
 
 export const App = () => {
-  const queryClient = useQueryClient();
-  const [actorId, setActorId] = useState("analyst");
-  const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
-
-  const actors = useQuery({
-    queryKey: ["actors"],
-    queryFn: fetchDemoActors,
-  });
-
-  const evaluated = useQuery({
-    queryKey: ["evaluated-ui", actorId],
-    queryFn: () => fetchEvaluatedUi(demoRequestId, actorId),
-  });
-
-  const reset = useMutation({
-    mutationFn: resetDemoData,
-    onSuccess: () => queryClient.invalidateQueries(),
-  });
-
-  const reloadDefinitions = useMutation({
-    mutationFn: reloadStartupInvestmentDefinitions,
-    onSuccess: () => queryClient.invalidateQueries(),
-  });
+  const dispatch = useAppDispatch();
+  const actorId = useAppSelector((state) => state.requestWorkbench.actorId);
+  const selectedPageId = useAppSelector((state) => state.requestWorkbench.selectedPageId);
+  const actors = useFetchDemoActorsQuery();
+  const evaluated = useFetchEvaluatedUiQuery({ requestCaseId: demoRequestId, actorId });
+  const [resetDemo] = useResetDemoDataMutation();
+  const [reloadDefinitions] = useReloadStartupInvestmentDefinitionsMutation();
 
   const visiblePages = useMemo(() => evaluated.data?.pages.filter((page) => page.visible) ?? [], [evaluated.data]);
 
   useEffect(() => {
     if (!selectedPageId && visiblePages.length > 0) {
-      setSelectedPageId(visiblePages[0].id);
+      dispatch(setSelectedPageId(visiblePages[0].id));
     }
     if (selectedPageId && visiblePages.length > 0 && !visiblePages.some((page) => page.id === selectedPageId)) {
-      setSelectedPageId(visiblePages[0].id);
+      dispatch(setSelectedPageId(visiblePages[0].id));
     }
-  }, [selectedPageId, visiblePages]);
+  }, [dispatch, selectedPageId, visiblePages]);
 
   const selectedPage = visiblePages.find((page) => page.id === selectedPageId) ?? visiblePages[0];
 
@@ -53,17 +43,17 @@ export const App = () => {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <select className="control w-64" value={actorId} onChange={(event) => setActorId(event.target.value)}>
+            <select className="control w-64" value={actorId} onChange={(event) => dispatch(setActorId(event.target.value))}>
               {(actors.data ?? []).map((actor) => (
                 <option value={actor.id} key={actor.id}>
                   {actor.displayName} ({actor.role})
                 </option>
               ))}
             </select>
-            <button className="button secondary" onClick={() => reloadDefinitions.mutate()}>
+            <button className="button secondary" onClick={() => reloadDefinitions()}>
               Reload definitions
             </button>
-            <button className="button secondary" onClick={() => reset.mutate()}>
+            <button className="button secondary" onClick={() => resetDemo()}>
               Reset demo
             </button>
           </div>
@@ -77,7 +67,7 @@ export const App = () => {
             evaluated={evaluated.data}
             selectedPage={selectedPage}
             selectedPageId={selectedPageId}
-            setSelectedPageId={setSelectedPageId}
+            setSelectedPageId={(id) => dispatch(setSelectedPageId(id))}
             actorId={actorId}
           />
         )}

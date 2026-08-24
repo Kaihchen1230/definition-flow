@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { executeRequestAction, saveRequestData } from "../../api/requestCases";
+import { useEffect } from "react";
+import { useExecuteRequestActionMutation, useSaveRequestDataMutation } from "../../services/approvalApi";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { RenderNode } from "../request-renderer/RenderNode";
 import type { EvaluatedUi, UiNode } from "../../types/api";
 import { ActionMessage } from "./ActionMessage";
@@ -8,6 +8,7 @@ import { StatusBar } from "./StatusBar";
 import { TracePanel } from "./TracePanel";
 import { ValidationSummary } from "./ValidationSummary";
 import { WorkflowActions } from "./WorkflowActions";
+import { setDraft } from "./requestWorkbenchSlice";
 
 type RequestWorkbenchProps = {
   evaluated: EvaluatedUi;
@@ -18,22 +19,14 @@ type RequestWorkbenchProps = {
 };
 
 export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setSelectedPageId, actorId }: RequestWorkbenchProps) => {
-  const [draft, setDraft] = useState(evaluated.requestData);
-  const queryClient = useQueryClient();
+  const dispatch = useAppDispatch();
+  const draft = useAppSelector((state) => state.requestWorkbench.draft);
+  const [saveRequest, save] = useSaveRequestDataMutation();
+  const [runRequestAction, action] = useExecuteRequestActionMutation();
 
   useEffect(() => {
-    setDraft(evaluated.requestData);
-  }, [evaluated.requestData]);
-
-  const save = useMutation({
-    mutationFn: () => saveRequestData(evaluated.requestCaseId, actorId, draft),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["evaluated-ui"] }),
-  });
-
-  const action = useMutation({
-    mutationFn: (actionId: string) => executeRequestAction(evaluated.requestCaseId, actorId, actionId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["evaluated-ui"] }),
-  });
+    dispatch(setDraft(evaluated.requestData));
+  }, [dispatch, evaluated.requestData]);
 
   const visiblePages = evaluated.pages.filter((page) => page.visible);
 
@@ -55,19 +48,19 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
       <section className="space-y-4">
         <StatusBar evaluated={evaluated} />
         <ValidationSummary evaluated={evaluated} />
-        <WorkflowActions actions={evaluated.workflowActions} runAction={(id) => action.mutate(id)} pending={action.isPending} />
+        <WorkflowActions actions={evaluated.workflowActions} runAction={(id) => runRequestAction({ requestCaseId: evaluated.requestCaseId, actorId, actionId: id })} pending={action.isLoading} />
         {action.data ? <ActionMessage result={action.data as { success: boolean; message: string }} /> : null}
         {selectedPage && (
           <div className="panel">
             <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-3">
               <h2 className="text-lg font-semibold">{selectedPage.label}</h2>
-              <button className="button" onClick={() => save.mutate()} disabled={save.isPending || !evaluated.canSave}>
+              <button className="button" onClick={() => saveRequest({ requestCaseId: evaluated.requestCaseId, actorId, requestData: draft })} disabled={save.isLoading || !evaluated.canSave}>
                 Save draft
               </button>
             </div>
             <div className="space-y-4">
               {(selectedPage.children ?? []).filter((node) => node.visible).map((node) => (
-                <RenderNode key={node.id} node={node} data={draft} setData={setDraft} actorRole={evaluated.actor.role} runAction={(id) => action.mutate(id)} />
+                <RenderNode key={node.id} node={node} data={draft} setData={(value) => dispatch(setDraft(typeof value === "function" ? value(draft) : value))} actorRole={evaluated.actor.role} runAction={(id) => runRequestAction({ requestCaseId: evaluated.requestCaseId, actorId, actionId: id })} />
               ))}
             </div>
           </div>
