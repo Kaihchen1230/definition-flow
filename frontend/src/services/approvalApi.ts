@@ -2,10 +2,11 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import type { Actor, EvaluatedUi } from "../types/api";
 
 export const demoRequestId = "11111111-1111-1111-1111-111111111111";
+const apiBaseUrl = typeof window === "undefined" ? "/" : `${window.location.origin}/`;
 
 export const approvalApi = createApi({
   reducerPath: "approvalApi",
-  baseQuery: fetchBaseQuery({ baseUrl: "/" }),
+  baseQuery: fetchBaseQuery({ baseUrl: apiBaseUrl }),
   tagTypes: ["Actors", "EvaluatedUi"],
   endpoints: (builder) => ({
     fetchDemoActors: builder.query<Actor[], void>({

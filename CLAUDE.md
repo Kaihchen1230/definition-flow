@@ -64,6 +64,13 @@ When adding a rule, name it by capability or business meaning, not by the UI ele
 
 ## Verification Commands
 
+Every code change should include relevant backend and/or frontend test coverage. If a change is docs-only or tests do not apply, say that explicitly in the PR.
+
+Prefer behavior tests at public seams:
+
+- Backend: API-visible behavior, workflow/action enforcement, validation, persistence, and audit outcomes.
+- Frontend: user-visible UI behavior, state transitions, and API integration boundaries.
+
 Run these before handing off code changes:
 
 ```bash
@@ -73,10 +80,9 @@ mvn -gs .mvn/settings.xml -s .mvn/settings.xml -Dmaven.repo.local=../.m2/reposit
 
 ```bash
 cd frontend
+npm run test
 npm run build
 ```
-
-Current known limitation: backend has no automated tests yet, so Maven currently verifies compilation only.
 
 ## Documentation Maintenance
 

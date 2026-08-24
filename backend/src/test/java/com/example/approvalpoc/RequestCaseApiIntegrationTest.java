@@ -1,0 +1,78 @@
+package com.example.approvalpoc;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
+
+import static org.hamcrest.Matchers.hasItem;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+@ActiveProfiles("h2")
+class RequestCaseApiIntegrationTest {
+    private static final String DEMO_REQUEST_ID = "11111111-1111-1111-1111-111111111111";
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @BeforeEach
+    void setUpDemoData() throws Exception {
+        mockMvc.perform(post("/api/dev/definitions/reload/startup-investment"))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/dev/demo/reset"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void submitInvestmentReviewRequiresFreshApprovalRoute() throws Exception {
+        mockMvc.perform(post("/api/request-cases/{requestCaseId}/actions/workflow.submitInvestmentReview", DEMO_REQUEST_ID)
+                        .param("actorId", "analyst")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Blocking validations must be resolved."))
+                .andExpect(jsonPath("$.details.issues[*].ruleId", hasItem("approvalRouteMustBeFresh")));
+    }
+
+    @Test
+    void supportActorCannotSaveRequestData() throws Exception {
+        String evaluatedUi = mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluated-ui", DEMO_REQUEST_ID)
+                        .param("actorId", "support"))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+        JsonNode requestData = objectMapper.readTree(evaluatedUi).path("requestData").deepCopy();
+        ((ObjectNode) requestData.path("company")).put("name", "Support Edit Attempt");
+
+        mockMvc.perform(put("/api/request-cases/{requestCaseId}/request-data", DEMO_REQUEST_ID)
+                        .param("actorId", "support")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestData)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value("Save is not allowed for this actor or workflow state."));
+
+        mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluated-ui", DEMO_REQUEST_ID)
+                        .param("actorId", "analyst"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requestData.company.name").value("Acme Robotics"));
+    }
+}
