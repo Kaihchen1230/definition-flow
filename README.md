@@ -7,18 +7,32 @@ The POC uses a startup investment approval scenario to demonstrate:
 - modular YAML definitions for data schema, UI, rules, derived facts, calculations, and workflow
 - a Java Spring Boot backend as a modular monolith
 - Postgres as the target persistence mode, with H2 as a convenience fallback
-- a React renderer consuming a framework-neutral evaluated UI contract
+- a React/Vite frontend using Redux Toolkit and RTK Query
+- a React renderer consuming a framework-neutral evaluated UI contract from the backend
 - backend-authoritative rules, validation, actions, workflow transitions, calculation stale tracking, and audit
 
 ## Repository Shape
 
 ```text
 backend/                         Spring Boot modular monolith
-frontend/                        React renderer
+frontend/                        React/Vite renderer with Redux Toolkit and RTK Query
 definitions/startup-investment/  Developer-maintained YAML definitions
 docs/                            Proposal and rule DSL spec
 scripts/                         Local helper scripts
 docker-compose.yml               Optional Postgres runtime
+```
+
+## Frontend Shape
+
+```text
+frontend/src/app/                         App shell and top-level page wiring
+frontend/src/services/                    RTK Query API service
+frontend/src/store/                       Redux store setup and typed hooks
+frontend/src/features/request-workbench/  Request workbench panels and local UI state slice
+frontend/src/features/request-renderer/   Dynamic field, collection, and action renderers
+frontend/src/config/                      Static frontend config such as enum options
+frontend/src/types/                       Shared API response types
+frontend/src/utils/                       Generic helpers
 ```
 
 ## What Is a DSL?
@@ -73,7 +87,8 @@ The POC currently includes:
 6. Structured validation buckets for render, submit, and approve.
 7. Evaluated UI contract endpoint.
 8. Save, calculate, submit, approve, decline, and withdraw action endpoints.
-9. React renderer with page navigation, editable fields/tables/lists, validation summary, workflow actions, and rule trace panel.
+9. Redux Toolkit/RTK Query frontend state and backend API integration.
+10. React renderer with page navigation, editable fields/tables/lists, validation summary, workflow actions, and rule trace panel.
 
 ## Demo Flow
 
