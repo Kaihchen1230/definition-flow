@@ -1,0 +1,80 @@
+# DefinitionFlow Contributor Guide
+
+Use this guide when making changes in this repository so the POC stays consistent across contributors and AI agents.
+
+## Project Shape
+
+- `backend/`: Spring Boot modular monolith.
+- `frontend/`: React/Vite UI renderer.
+- `definitions/startup-investment/`: YAML request definitions.
+- `docs/`: design notes and DSL docs.
+- `scripts/`: local helper scripts.
+
+## Frontend Conventions
+
+- Use ES6 arrow functions for React components and helpers.
+- Keep `frontend/src/main.tsx` as bootstrap only.
+- Put top-level app state and app wiring in `frontend/src/app/`.
+- Put API wrappers in `frontend/src/api/`.
+- Put shared API response types in `frontend/src/types/`.
+- Put static frontend config in `frontend/src/config/`.
+- Put reusable request workbench panels in `frontend/src/features/request-workbench/`.
+- Put dynamic request rendering components in `frontend/src/features/request-renderer/`.
+- Put generic helpers in `frontend/src/utils/`.
+- Prefer named exports for local modules.
+- Keep components focused on rendering and interaction; avoid hiding API calls or business rules inside low-level field components.
+- Do not reintroduce large multi-purpose files like the original all-in-one `main.tsx`.
+
+## Frontend Formatting
+
+- Use TypeScript strict mode.
+- Keep imports ordered by rough locality:
+  1. React/library imports
+  2. app/API/config imports
+  3. feature/component imports
+  4. type-only imports
+- Use `type` imports where values are not needed at runtime.
+- Keep JSX readable rather than overly clever; extract a component when a block becomes hard to scan.
+- Preserve existing Tailwind utility style unless introducing a broader design-system change.
+
+## Backend Conventions
+
+- Treat the backend as authoritative for mutations.
+- Re-check permissions in mutation endpoints even when the frontend hides or disables an action.
+- Keep workflow transitions, validation, calculation freshness, persistence, and audit on the backend.
+- Keep frontend enablement/visibility as UX only; never rely on it as enforcement.
+- Prefer small services with clear module ownership over shared catch-all utility classes.
+- Keep YAML definition loading deterministic and versioned.
+
+## Definition Conventions
+
+- `rules.yaml`: decision and capability DSL.
+- `workflow.yaml`: workflow/state-machine DSL.
+- `ui.yaml`: UI layout/config DSL.
+- `data-schema.yaml`: request data model DSL.
+- `derived-facts.yaml`: derived data DSL.
+- `calculations.yaml`: calculation definition DSL.
+
+When adding a rule, name it by capability or business meaning, not by the UI element that happens to use it.
+
+## Verification Commands
+
+Run these before handing off code changes:
+
+```bash
+cd backend
+mvn -gs .mvn/settings.xml -s .mvn/settings.xml -Dmaven.repo.local=../.m2/repository test
+```
+
+```bash
+cd frontend
+npm run build
+```
+
+Current known limitation: backend has no automated tests yet, so Maven currently verifies compilation only.
+
+## Git Hygiene
+
+- Do not commit generated output or local dependency caches.
+- `.m2/`, `backend/target/`, `frontend/dist/`, and `frontend/node_modules/` should remain ignored.
+- Keep commits focused and describe the user-facing or architectural intent.

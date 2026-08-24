@@ -21,6 +21,14 @@ scripts/                         Local helper scripts
 docker-compose.yml               Optional Postgres runtime
 ```
 
+## What Is a DSL?
+
+DSL stands for Domain-Specific Language. It is a small language designed for one problem area instead of a general-purpose programming language like Java or TypeScript.
+
+In this POC, the rule DSL is the YAML format used to describe approval-platform decisions in a predictable, non-code way. For example, `rules.yaml` can say that an actor may approve a request only when the workflow is in the right state and the actor has the right entitlement.
+
+That lets the platform evaluate rules consistently for UI behavior, validation, workflow actions, calculations, and audit without hardcoding every approval scenario into application code.
+
 ## Local Runtime Options
 
 Primary mode uses Postgres:
