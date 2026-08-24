@@ -1,0 +1,135 @@
+capabilities:
+  canEditInvestmentReview:
+    description: Investment users can edit the request before it moves to risk review.
+    rule:
+      and:
+        - path: workflow.state
+          op: in
+          value: [DRAFT, INVESTMENT_REVIEW]
+        - path: actor.entitlements
+          op: contains
+          value: EDIT_INVESTMENT_REQUEST
+
+  canApproveInvestmentReview:
+    description: Investment approvers can route the case to risk review.
+    rule:
+      and:
+        - path: workflow.state
+          op: eq
+          value: PENDING_INVESTMENT_APPROVAL
+        - path: actor.entitlements
+          op: contains
+          value: APPROVE_INVESTMENT_REVIEW
+
+  canEditRiskReview:
+    description: Risk users can add review data during risk review.
+    rule:
+      and:
+        - path: workflow.state
+          op: eq
+          value: RISK_REVIEW
+        - path: actor.entitlements
+          op: contains
+          value: EDIT_RISK_REVIEW
+
+  canApproveFinalRequest:
+    description: Final risk approvers can fully approve the case.
+    rule:
+      and:
+        - path: workflow.state
+          op: eq
+          value: PENDING_RISK_APPROVAL
+        - path: actor.entitlements
+          op: contains
+          value: APPROVE_FINAL_REQUEST
+
+  canWithdrawRequest:
+    description: Entitled users can withdraw non-terminal cases.
+    rule:
+      and:
+        - path: actor.entitlements
+          op: contains
+          value: WITHDRAW_REQUEST
+        - path: workflow.state
+          op: notIn
+          value: [APPROVED, DECLINED, WITHDRAWN]
+
+  canDeclineRequest:
+    description: Approval users can decline non-terminal cases during approval review.
+    rule:
+      and:
+        - path: actor.entitlements
+          op: contains
+          value: DECLINE_REQUEST
+        - path: workflow.state
+          op: notIn
+          value: [APPROVED, DECLINED, WITHDRAWN]
+
+uiRules:
+  showEnhancedRiskReview:
+    description: Enhanced risk review is visible for high-risk investment variants.
+    rule:
+      path: derived.investmentVariant
+      op: eq
+      value: HIGH_RISK
+
+  showFinalReview:
+    description: Final review is visible near the final approval stage and after terminal decisions.
+    rule:
+      or:
+        - path: workflow.state
+          op: in
+          value: [PENDING_RISK_APPROVAL, APPROVED, DECLINED, WITHDRAWN]
+        - path: actor.role
+          op: eq
+          value: Support
+
+actionRules:
+  canCalculateApprovalRoute:
+    description: Editable investment users can calculate an approval route after amount is provided.
+    rule:
+      and:
+        - rule: canEditInvestmentReview
+        - path: requestData.investment.amount
+          op: exists
+
+validationRules:
+  foundersRequired:
+    description: A startup investment request needs at least one founder.
+    scope: [submit, approve]
+    severity: blocking
+    rule:
+      path: requestData.founders
+      op: minCount
+      value: 1
+    message: At least one founder is required.
+
+  approvalRouteMustBeFresh:
+    description: The approval route must be calculated and fresh before submit.
+    scope: [submit]
+    severity: blocking
+    rule:
+      and:
+        - path: calculations.approvalRoute.exists
+          op: eq
+          value: true
+        - path: calculations.approvalRoute.stale
+          op: eq
+          value: false
+    message: Approval route must be calculated before submit.
+
+  analystExceptionsNeedRiskConfirmation:
+    description: Risk must confirm analyst-created exceptions before final approval.
+    scope: [approve]
+    severity: blocking
+    rule:
+      allItems:
+        path: requestData.exceptions
+        where:
+          path: $item.createdBy.role
+          op: eq
+          value: InvestmentAnalyst
+        rule:
+          path: $item.riskConfirmation
+          op: notEmpty
+    message: Risk confirmation is required for each analyst-created exception.

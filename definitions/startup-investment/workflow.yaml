@@ -1,0 +1,41 @@
+workflow:
+  initialState: DRAFT
+  terminalStates: [APPROVED, DECLINED, WITHDRAWN]
+  states:
+    - DRAFT
+    - INVESTMENT_REVIEW
+    - PENDING_INVESTMENT_APPROVAL
+    - RISK_REVIEW
+    - PENDING_RISK_APPROVAL
+    - APPROVED
+    - DECLINED
+    - WITHDRAWN
+  transitions:
+    - action: workflow.startInvestmentReview
+      from: DRAFT
+      to: INVESTMENT_REVIEW
+      enabledRule: canEditInvestmentReview
+    - action: workflow.submitInvestmentReview
+      from: INVESTMENT_REVIEW
+      to: PENDING_INVESTMENT_APPROVAL
+      enabledRule: canEditInvestmentReview
+    - action: workflow.approveInvestmentReview
+      from: PENDING_INVESTMENT_APPROVAL
+      to: RISK_REVIEW
+      enabledRule: canApproveInvestmentReview
+    - action: workflow.submitRiskReview
+      from: RISK_REVIEW
+      to: PENDING_RISK_APPROVAL
+      enabledRule: canEditRiskReview
+    - action: workflow.approveFinalRequest
+      from: PENDING_RISK_APPROVAL
+      to: APPROVED
+      enabledRule: canApproveFinalRequest
+    - action: workflow.decline
+      from: "*"
+      to: DECLINED
+      enabledRule: canDeclineRequest
+    - action: workflow.withdraw
+      from: "*"
+      to: WITHDRAWN
+      enabledRule: canWithdrawRequest

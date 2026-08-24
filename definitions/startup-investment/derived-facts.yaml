@@ -1,0 +1,19 @@
+derivedFacts:
+  investmentVariant:
+    description: Classifies the investment using current request data.
+    resultType: enum
+    defaultValue: STANDARD
+    cases:
+      - value: HIGH_RISK
+        when:
+          or:
+            - path: requestData.investment.amount
+              op: gte
+              value: 5000000
+            - path: requestData.company.stage
+              op: in
+              value: [SEED, PRE_REVENUE]
+            - path: requestData.risk.hasMaterialException
+              op: eq
+              value: true
+

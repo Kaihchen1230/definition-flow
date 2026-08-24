@@ -1,0 +1,36 @@
+requestType: startupInvestment
+fields:
+  company.name:
+    valueType: string
+    label: Company name
+  company.stage:
+    valueType: enum
+    allowedValues: [SEED, PRE_REVENUE, GROWTH, LATE_STAGE]
+  company.sector:
+    valueType: enum
+    allowedValues: [AI, FINTECH, HEALTHCARE, INFRASTRUCTURE, OTHER]
+  company.foundedDate:
+    valueType: date
+  company.incorporated:
+    valueType: enum
+    allowedValues: [YES, NO, NA]
+  investment.amount:
+    valueType: number
+  investment.instrument:
+    valueType: enum
+    allowedValues: [SAFE, EQUITY, CONVERTIBLE_NOTE]
+  investment.useOfFunds:
+    valueType: string
+  founders:
+    valueType: array
+  exceptions:
+    valueType: array
+  indicators:
+    valueType: enumArray
+    allowedValues:
+      - HIGH_BURN_RATE
+      - PENDING_LITIGATION
+      - RELATED_PARTY_TRANSACTION
+      - FOREIGN_OWNERSHIP
+      - DATA_PRIVACY_EXPOSURE
+

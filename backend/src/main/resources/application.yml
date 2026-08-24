@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: approval-platform-poc
+  profiles:
+    default: h2
+
+server:
+  port: 8080
+
+poc:
+  definitions-root: ../definitions
+
