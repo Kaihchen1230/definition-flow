@@ -2,6 +2,7 @@ package com.example.approvalpoc.ui;
 
 import com.example.approvalpoc.actions.ActionResult;
 import com.example.approvalpoc.actions.ActionService;
+import com.example.approvalpoc.actions.RequestDataPatch;
 import com.example.approvalpoc.requestcase.RequestCaseEntity;
 import com.example.approvalpoc.requestcase.RequestCaseRepository;
 import com.example.approvalpoc.runtime.EvaluationContextService;
@@ -11,6 +12,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -53,6 +55,11 @@ public class EvaluatedUiController {
     @PutMapping("/{requestCaseId}/request-data")
     public ActionResult saveRequestData(@PathVariable UUID requestCaseId, @RequestParam(defaultValue = "analyst") String actorId, @RequestBody JsonNode requestData) {
         return actionService.saveRequestData(requestCaseId, actorId, requestData);
+    }
+
+    @PatchMapping("/{requestCaseId}/request-data")
+    public ActionResult patchRequestData(@PathVariable UUID requestCaseId, @RequestParam(defaultValue = "analyst") String actorId, @RequestBody RequestDataPatch patch) {
+        return actionService.patchRequestData(requestCaseId, actorId, patch);
     }
 
     @PostMapping("/{requestCaseId}/actions/{actionId}")

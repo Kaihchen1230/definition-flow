@@ -58,3 +58,8 @@ export type EvaluatedUi = {
     render: ValidationIssue[];
   };
 };
+
+export type RequestDataUpdate = {
+  path: string;
+  value: any;
+};

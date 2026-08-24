@@ -10,6 +10,7 @@ The POC uses a startup investment approval scenario to demonstrate:
 - a React/Vite frontend using Redux Toolkit and RTK Query
 - a React renderer consuming a framework-neutral evaluated UI contract from the backend
 - backend-authoritative rules, validation, actions, workflow transitions, calculation stale tracking, and audit
+- page-scoped request data saves that patch only the current page's data paths
 
 ## Repository Shape
 
@@ -103,9 +104,9 @@ The POC currently includes:
 5. Approval route calculation with dependency-hash stale tracking.
 6. Structured validation buckets for render, submit, and approve.
 7. Evaluated UI contract endpoint.
-8. Save, calculate, submit, approve, decline, and withdraw action endpoints.
+8. Page-scoped save patching plus calculate, submit, approve, decline, and withdraw action endpoints.
 9. Redux Toolkit/RTK Query frontend state and backend API integration.
-10. React renderer with page navigation, editable fields/tables/lists, validation summary, workflow actions, and rule trace panel.
+10. React renderer with page navigation, page-scoped saves, editable fields/tables/lists, validation summary, workflow actions, and rule trace panel.
 11. Baseline backend API integration tests and frontend UI behavior tests.
 
 ## Demo Flow

@@ -1,6 +1,8 @@
 import { useEffect } from "react";
-import { useExecuteRequestActionMutation, useSaveRequestDataMutation } from "../../services/approvalApi";
+import { useExecuteRequestActionMutation, usePatchRequestDataMutation } from "../../services/approvalApi";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { getPath } from "../../utils/objectPath";
+import { collectDataPaths } from "../../utils/uiNode";
 import { RenderNode } from "../request-renderer/RenderNode";
 import type { EvaluatedUi, UiNode } from "../../types/api";
 import { ActionMessage } from "./ActionMessage";
@@ -22,7 +24,7 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
   const dispatch = useAppDispatch();
   const draft = useAppSelector((state) => state.requestWorkbench.draft);
   const validationMode = useAppSelector((state) => state.requestWorkbench.validationMode);
-  const [saveRequest, save] = useSaveRequestDataMutation();
+  const [patchRequest, save] = usePatchRequestDataMutation();
   const [runRequestAction, action] = useExecuteRequestActionMutation();
 
   useEffect(() => {
@@ -30,6 +32,15 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
   }, [dispatch, evaluated.requestData]);
 
   const visiblePages = evaluated.pages.filter((page) => page.visible);
+  const pageDataPaths = selectedPage ? collectDataPaths(selectedPage) : [];
+  const canSavePage = evaluated.canSave && pageDataPaths.length > 0;
+  const savePage = () => {
+    patchRequest({
+      requestCaseId: evaluated.requestCaseId,
+      actorId,
+      updates: pageDataPaths.map((path) => ({ path, value: getPath(draft, path) })),
+    });
+  };
   const runAction = (actionId: string) => {
     if (actionId.startsWith("workflow.submit")) {
       dispatch(enableValidationMode());
@@ -61,8 +72,8 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
           <div className="panel">
             <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-3">
               <h2 className="text-lg font-semibold">{selectedPage.label}</h2>
-              <button className="button" onClick={() => saveRequest({ requestCaseId: evaluated.requestCaseId, actorId, requestData: draft })} disabled={save.isLoading || !evaluated.canSave}>
-                Save draft
+              <button className="button" onClick={savePage} disabled={save.isLoading || !canSavePage}>
+                Save page
               </button>
             </div>
             <div className="space-y-4">

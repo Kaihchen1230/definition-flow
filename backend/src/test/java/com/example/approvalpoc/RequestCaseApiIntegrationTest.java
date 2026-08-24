@@ -2,6 +2,7 @@ package com.example.approvalpoc;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -74,5 +76,28 @@ class RequestCaseApiIntegrationTest {
                         .param("actorId", "analyst"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.requestData.company.name").value("Acme Robotics"));
+    }
+
+    @Test
+    void pageScopedPatchUpdatesOnlySubmittedPaths() throws Exception {
+        ObjectNode patchBody = objectMapper.createObjectNode();
+        ArrayNode updates = patchBody.putArray("updates");
+        updates.addObject()
+                .put("path", "company.name")
+                .put("value", "Patched Robotics");
+
+        mockMvc.perform(patch("/api/request-cases/{requestCaseId}/request-data", DEMO_REQUEST_ID)
+                        .param("actorId", "analyst")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(patchBody)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.details.paths[0]").value("company.name"));
+
+        mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluated-ui", DEMO_REQUEST_ID)
+                        .param("actorId", "analyst"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requestData.company.name").value("Patched Robotics"))
+                .andExpect(jsonPath("$.requestData.investment.amount").value(6500000));
     }
 }
