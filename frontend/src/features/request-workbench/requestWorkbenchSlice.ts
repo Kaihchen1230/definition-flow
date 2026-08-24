@@ -4,12 +4,14 @@ type RequestWorkbenchState = {
   actorId: string;
   selectedPageId: string | null;
   draft: Record<string, any>;
+  validationMode: boolean;
 };
 
 const initialState: RequestWorkbenchState = {
   actorId: "analyst",
   selectedPageId: null,
   draft: {},
+  validationMode: false,
 };
 
 const requestWorkbenchSlice = createSlice({
@@ -25,8 +27,11 @@ const requestWorkbenchSlice = createSlice({
     setDraft: (state, action: PayloadAction<Record<string, any>>) => {
       state.draft = action.payload;
     },
+    enableValidationMode: (state) => {
+      state.validationMode = true;
+    },
   },
 });
 
-export const { setActorId, setSelectedPageId, setDraft } = requestWorkbenchSlice.actions;
+export const { setActorId, setSelectedPageId, setDraft, enableValidationMode } = requestWorkbenchSlice.actions;
 export default requestWorkbenchSlice.reducer;

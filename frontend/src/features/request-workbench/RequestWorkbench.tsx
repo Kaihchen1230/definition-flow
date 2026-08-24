@@ -8,7 +8,7 @@ import { StatusBar } from "./StatusBar";
 import { TracePanel } from "./TracePanel";
 import { ValidationSummary } from "./ValidationSummary";
 import { WorkflowActions } from "./WorkflowActions";
-import { setDraft } from "./requestWorkbenchSlice";
+import { enableValidationMode, setDraft } from "./requestWorkbenchSlice";
 
 type RequestWorkbenchProps = {
   evaluated: EvaluatedUi;
@@ -21,6 +21,7 @@ type RequestWorkbenchProps = {
 export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setSelectedPageId, actorId }: RequestWorkbenchProps) => {
   const dispatch = useAppDispatch();
   const draft = useAppSelector((state) => state.requestWorkbench.draft);
+  const validationMode = useAppSelector((state) => state.requestWorkbench.validationMode);
   const [saveRequest, save] = useSaveRequestDataMutation();
   const [runRequestAction, action] = useExecuteRequestActionMutation();
 
@@ -29,6 +30,12 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
   }, [dispatch, evaluated.requestData]);
 
   const visiblePages = evaluated.pages.filter((page) => page.visible);
+  const runAction = (actionId: string) => {
+    if (actionId.startsWith("workflow.submit")) {
+      dispatch(enableValidationMode());
+    }
+    runRequestAction({ requestCaseId: evaluated.requestCaseId, actorId, actionId });
+  };
 
   return (
     <div className="grid grid-cols-[230px_minmax(0,1fr)_360px] gap-4">
@@ -47,8 +54,8 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
 
       <section className="space-y-4">
         <StatusBar evaluated={evaluated} />
-        <ValidationSummary evaluated={evaluated} />
-        <WorkflowActions actions={evaluated.workflowActions} runAction={(id) => runRequestAction({ requestCaseId: evaluated.requestCaseId, actorId, actionId: id })} pending={action.isLoading} />
+        {validationMode && <ValidationSummary evaluated={evaluated} />}
+        <WorkflowActions actions={evaluated.workflowActions} runAction={runAction} pending={action.isLoading} />
         {action.data ? <ActionMessage result={action.data as { success: boolean; message: string }} /> : null}
         {selectedPage && (
           <div className="panel">
@@ -60,7 +67,7 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
             </div>
             <div className="space-y-4">
               {(selectedPage.children ?? []).filter((node) => node.visible).map((node) => (
-                <RenderNode key={node.id} node={node} data={draft} setData={(value) => dispatch(setDraft(typeof value === "function" ? value(draft) : value))} actorRole={evaluated.actor.role} runAction={(id) => runRequestAction({ requestCaseId: evaluated.requestCaseId, actorId, actionId: id })} />
+                <RenderNode key={node.id} node={node} data={draft} setData={(value) => dispatch(setDraft(typeof value === "function" ? value(draft) : value))} actorRole={evaluated.actor.role} runAction={runAction} />
               ))}
             </div>
           </div>
