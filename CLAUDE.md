@@ -27,6 +27,8 @@ Use this guide when making changes in this repository so the POC stays consisten
 - Keep components focused on rendering and interaction; avoid hiding API calls or business rules inside low-level field components.
 - Do not reintroduce large multi-purpose files like the original all-in-one `main.tsx`.
 - Do not add React Query for new data fetching; use the existing RTK Query service.
+- Show frontend validation summaries only after validation mode is enabled in the current session.
+- Enable validation mode when the user first attempts a submit workflow action.
 
 ## Frontend Formatting
 
