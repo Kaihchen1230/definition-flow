@@ -76,6 +76,13 @@ npm run build
 
 Current known limitation: backend has no automated tests yet, so Maven currently verifies compilation only.
 
+## Documentation Maintenance
+
+- Keep `README.md` and `CLAUDE.md` current whenever architecture, setup, workflow, dependencies, or project structure changes.
+- If a documented flow, command, package, folder, or convention is no longer true, update it in the same change.
+- If stale documentation is no longer useful, remove it instead of leaving conflicting guidance.
+- When adding a new contributor rule, include it in `CLAUDE.md`.
+
 ## Git Hygiene
 
 - Never commit or push directly to `main`.
