@@ -15,7 +15,9 @@ Use this guide when making changes in this repository so the POC stays consisten
 - Use ES6 arrow functions for React components and helpers.
 - Keep `frontend/src/main.tsx` as bootstrap only.
 - Put top-level app state and app wiring in `frontend/src/app/`.
-- Put API wrappers in `frontend/src/api/`.
+- Use Redux Toolkit for frontend state.
+- Use RTK Query for backend request/mutation endpoints in `frontend/src/services/`.
+- Put Redux store setup and typed hooks in `frontend/src/store/`.
 - Put shared API response types in `frontend/src/types/`.
 - Put static frontend config in `frontend/src/config/`.
 - Put reusable request workbench panels in `frontend/src/features/request-workbench/`.
@@ -24,6 +26,7 @@ Use this guide when making changes in this repository so the POC stays consisten
 - Prefer named exports for local modules.
 - Keep components focused on rendering and interaction; avoid hiding API calls or business rules inside low-level field components.
 - Do not reintroduce large multi-purpose files like the original all-in-one `main.tsx`.
+- Do not add React Query for new data fetching; use the existing RTK Query service.
 
 ## Frontend Formatting
 
@@ -75,6 +78,10 @@ Current known limitation: backend has no automated tests yet, so Maven currently
 
 ## Git Hygiene
 
+- Never commit or push directly to `main`.
+- Before changing code, create a feature branch from an up-to-date `main`.
+- Once the work is verified, push the feature branch and open a PR.
+- Do not merge the PR unless explicitly asked.
 - Do not commit generated output or local dependency caches.
 - `.m2/`, `backend/target/`, `frontend/dist/`, and `frontend/node_modules/` should remain ignored.
 - Keep commits focused and describe the user-facing or architectural intent.
