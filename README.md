@@ -75,6 +75,23 @@ npm install
 npm run dev
 ```
 
+## Verification
+
+Run backend tests:
+
+```bash
+cd backend
+mvn -gs .mvn/settings.xml -s .mvn/settings.xml -Dmaven.repo.local=../.m2/repository test
+```
+
+Run frontend tests and build:
+
+```bash
+cd frontend
+npm run test
+npm run build
+```
+
 ## Current Status
 
 The POC currently includes:
@@ -89,6 +106,7 @@ The POC currently includes:
 8. Save, calculate, submit, approve, decline, and withdraw action endpoints.
 9. Redux Toolkit/RTK Query frontend state and backend API integration.
 10. React renderer with page navigation, editable fields/tables/lists, validation summary, workflow actions, and rule trace panel.
+11. Baseline backend API integration tests and frontend UI behavior tests.
 
 ## Demo Flow
 
