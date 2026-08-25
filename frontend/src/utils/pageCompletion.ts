@@ -41,7 +41,7 @@ const evaluateNodeCompletion = (node: UiNode, data: Record<string, any>): PageCo
         node.requiredFields?.forEach((field) => {
           const path = `${node.dataPath}.${rowIndex}.${field}`;
           completion.requiredCount += 1;
-          if (isMissing(row?.[field])) {
+          if (isMissing(getPath(row, field))) {
             completion.missingCount += 1;
             completion.missingPaths.add(path);
           }
