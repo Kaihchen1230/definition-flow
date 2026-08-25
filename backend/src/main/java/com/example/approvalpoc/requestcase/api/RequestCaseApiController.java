@@ -1,10 +1,11 @@
-package com.example.approvalpoc.ui;
+package com.example.approvalpoc.requestcase.api;
 
 import com.example.approvalpoc.actions.ActionResult;
 import com.example.approvalpoc.actions.ActionService;
 import com.example.approvalpoc.actions.RequestDataPatch;
 import com.example.approvalpoc.requestcase.RequestCaseEntity;
 import com.example.approvalpoc.requestcase.RequestCaseRepository;
+import com.example.approvalpoc.requestcase.evaluation.RequestEvaluationService;
 import com.example.approvalpoc.runtime.EvaluationContextService;
 import com.example.approvalpoc.runtime.RuntimeBundle;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -23,21 +24,21 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/request-cases")
-public class EvaluatedUiController {
+public class RequestCaseApiController {
     private final RequestCaseRepository requestCaseRepository;
     private final EvaluationContextService contextService;
-    private final UiEvaluationService uiEvaluationService;
+    private final RequestEvaluationService requestEvaluationService;
     private final ActionService actionService;
 
-    public EvaluatedUiController(
+    public RequestCaseApiController(
             RequestCaseRepository requestCaseRepository,
             EvaluationContextService contextService,
-            UiEvaluationService uiEvaluationService,
+            RequestEvaluationService requestEvaluationService,
             ActionService actionService
     ) {
         this.requestCaseRepository = requestCaseRepository;
         this.contextService = contextService;
-        this.uiEvaluationService = uiEvaluationService;
+        this.requestEvaluationService = requestEvaluationService;
         this.actionService = actionService;
     }
 
@@ -46,10 +47,10 @@ public class EvaluatedUiController {
         return requestCaseRepository.findAll();
     }
 
-    @GetMapping("/{requestCaseId}/evaluated-ui")
-    public ObjectNode evaluatedUi(@PathVariable UUID requestCaseId, @RequestParam(defaultValue = "analyst") String actorId) {
+    @GetMapping({"/{requestCaseId}/evaluation-context", "/{requestCaseId}/evaluated-ui"})
+    public ObjectNode evaluationContext(@PathVariable UUID requestCaseId, @RequestParam(defaultValue = "analyst") String actorId) {
         RuntimeBundle bundle = contextService.bundle(requestCaseId, actorId, "render");
-        return uiEvaluationService.evaluate(bundle);
+        return requestEvaluationService.evaluate(bundle);
     }
 
     @PutMapping("/{requestCaseId}/request-data")

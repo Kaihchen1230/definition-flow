@@ -1,4 +1,4 @@
-package com.example.approvalpoc.ui;
+package com.example.approvalpoc.requestcase.evaluation;
 
 import com.example.approvalpoc.definition.DefinitionModuleType;
 import com.example.approvalpoc.definition.DefinitionService;
@@ -17,14 +17,14 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 
 @Service
-public class UiEvaluationService {
+public class RequestEvaluationService {
     private final DefinitionService definitionService;
     private final RuleEvaluator ruleEvaluator;
     private final RuleCatalog ruleCatalog;
     private final ValidationService validationService;
     private final ObjectMapper objectMapper;
 
-    public UiEvaluationService(
+    public RequestEvaluationService(
             DefinitionService definitionService,
             RuleEvaluator ruleEvaluator,
             RuleCatalog ruleCatalog,
@@ -39,7 +39,6 @@ public class UiEvaluationService {
     }
 
     public ObjectNode evaluate(RuntimeBundle bundle) {
-        JsonNode uiDefinition = definitionService.activeDefinition(bundle.requestCase().getRequestType(), DefinitionModuleType.UI);
         Map<String, JsonNode> namedRules = ruleCatalog.namedRules(bundle.rulesDefinition());
         List<ValidationIssue> renderIssues = validationService.validate(bundle.rulesDefinition(), bundle.context(), "render");
         List<ValidationIssue> submitIssues = validationService.validate(bundle.rulesDefinition(), bundle.context(), "submit");
@@ -55,7 +54,7 @@ public class UiEvaluationService {
         response.set("calculations", bundle.context().path("calculations"));
         response.set("definitionVersions", bundle.context().path("evaluation").path("definitionVersions"));
         response.put("canSave", canSave(bundle, namedRules));
-        response.set("pages", evaluateChildren(uiDefinition.path("pages"), bundle.context(), namedRules, true, true));
+        response.set("ruleResults", evaluateNamedRules(bundle, namedRules));
         response.set("workflowActions", evaluateWorkflowActions(bundle, namedRules));
         response.set("validation", validationNode(renderIssues, submitIssues, approveIssues));
         return response;
@@ -67,6 +66,12 @@ public class UiEvaluationService {
                 .add(objectMapper.createObjectNode().put("rule", "canEditInvestmentReview"))
                 .add(objectMapper.createObjectNode().put("rule", "canEditRiskReview")));
         return ruleEvaluator.evaluate(rule, bundle.context(), namedRules).result();
+    }
+
+    private ObjectNode evaluateNamedRules(RuntimeBundle bundle, Map<String, JsonNode> namedRules) {
+        ObjectNode results = objectMapper.createObjectNode();
+        namedRules.forEach((ruleId, rule) -> results.set(ruleId, objectMapper.valueToTree(ruleEvaluator.evaluate(rule, bundle.context(), namedRules))));
+        return results;
     }
 
     private ArrayNode evaluateWorkflowActions(RuntimeBundle bundle, Map<String, JsonNode> namedRules) {
@@ -107,52 +112,11 @@ public class UiEvaluationService {
         };
     }
 
-    private ArrayNode evaluateChildren(JsonNode nodes, JsonNode context, Map<String, JsonNode> namedRules, boolean parentVisible, boolean parentEnabled) {
-        ArrayNode result = objectMapper.createArrayNode();
-        for (JsonNode node : nodes) {
-            result.add(evaluateNode(node, context, namedRules, parentVisible, parentEnabled));
-        }
-        return result;
-    }
-
-    private ObjectNode evaluateNode(JsonNode node, JsonNode context, Map<String, JsonNode> namedRules, boolean parentVisible, boolean parentEnabled) {
-        ObjectNode evaluated = node.deepCopy();
-        RuleEvaluationResult visibleRule = evaluateOptionalRule(node.path("visibleRule").asText(null), context, namedRules, true);
-        RuleEvaluationResult enabledRule = evaluateOptionalRule(node.path("enabledRule").asText(null), context, namedRules, true);
-        boolean visible = parentVisible && visibleRule.result();
-        boolean enabled = parentEnabled && enabledRule.result();
-        evaluated.put("visible", visible);
-        evaluated.put("enabled", enabled);
-        evaluated.put("disabled", !enabled);
-        ObjectNode debug = objectMapper.createObjectNode();
-        debug.set("visibleRule", objectMapper.valueToTree(visibleRule));
-        debug.set("enabledRule", objectMapper.valueToTree(enabledRule));
-        evaluated.set("debug", debug);
-        if (node.has("dataPath")) {
-            evaluated.set("value", resolveRequestData(context.path("requestData"), node.path("dataPath").asText()));
-        }
-        if (node.has("children")) {
-            evaluated.set("children", evaluateChildren(node.path("children"), context, namedRules, visible, enabled));
-        }
-        if (node.has("actions")) {
-            evaluated.set("actions", evaluateChildren(node.path("actions"), context, namedRules, visible, enabled));
-        }
-        return evaluated;
-    }
-
     private RuleEvaluationResult evaluateOptionalRule(String ruleId, JsonNode context, Map<String, JsonNode> namedRules, boolean defaultResult) {
         if (ruleId == null || ruleId.isBlank() || ruleId.equals("null")) {
             return new RuleEvaluationResult(defaultResult, List.of());
         }
         return ruleEvaluator.evaluate(objectMapper.createObjectNode().put("rule", ruleId), context, namedRules);
-    }
-
-    private JsonNode resolveRequestData(JsonNode requestData, String path) {
-        JsonNode current = requestData;
-        for (String part : path.split("\\.")) {
-            current = current.path(part);
-        }
-        return current;
     }
 
     private ObjectNode validationNode(List<ValidationIssue> renderIssues, List<ValidationIssue> submitIssues, List<ValidationIssue> approveIssues) {

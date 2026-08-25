@@ -20,6 +20,7 @@ const evaluatedUi: EvaluatedUi = {
   calculations: { approvalRoute: { exists: false, stale: true } },
   definitionVersions: {},
   canSave: true,
+  ruleResults: {},
   pages: [
     {
       id: "investmentTerms",

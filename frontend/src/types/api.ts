@@ -21,6 +21,22 @@ export type UiNode = {
   children?: UiNode[];
   actions?: UiNode[];
   actionType?: string;
+  calculationId?: string;
+};
+
+export type RuleTraceEntry = {
+  ruleId: string | null;
+  path: string | null;
+  op: string | null;
+  expected: unknown;
+  actual: unknown;
+  result: boolean;
+  status: string;
+};
+
+export type RuleEvaluationResult = {
+  result: boolean;
+  trace: RuleTraceEntry[];
 };
 
 export type ValidationIssue = {
@@ -40,7 +56,7 @@ export type WorkflowAction = {
   debug?: Record<string, unknown>;
 };
 
-export type EvaluatedUi = {
+export type EvaluationContext = {
   requestCaseId: string;
   requestType: string;
   workflowState: string;
@@ -50,13 +66,17 @@ export type EvaluatedUi = {
   calculations: Record<string, any>;
   definitionVersions: Record<string, number>;
   canSave: boolean;
-  pages: UiNode[];
+  ruleResults: Record<string, RuleEvaluationResult>;
   workflowActions: WorkflowAction[];
   validation: {
     submit: ValidationIssue[];
     approve: ValidationIssue[];
     render: ValidationIssue[];
   };
+};
+
+export type EvaluatedUi = EvaluationContext & {
+  pages: UiNode[];
 };
 
 export type RequestDataUpdate = {

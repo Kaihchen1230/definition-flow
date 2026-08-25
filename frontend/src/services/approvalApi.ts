@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { Actor, EvaluatedUi, RequestDataUpdate } from "../types/api";
+import type { Actor, EvaluationContext, RequestDataUpdate } from "../types/api";
 
 export const demoRequestId = "11111111-1111-1111-1111-111111111111";
 const apiBaseUrl = typeof window === "undefined" ? "/" : `${window.location.origin}/`;
@@ -7,29 +7,29 @@ const apiBaseUrl = typeof window === "undefined" ? "/" : `${window.location.orig
 export const approvalApi = createApi({
   reducerPath: "approvalApi",
   baseQuery: fetchBaseQuery({ baseUrl: apiBaseUrl }),
-  tagTypes: ["Actors", "EvaluatedUi"],
+  tagTypes: ["Actors", "EvaluationContext"],
   endpoints: (builder) => ({
     fetchDemoActors: builder.query<Actor[], void>({
       query: () => "api/dev/demo/actors",
       providesTags: ["Actors"],
     }),
-    fetchEvaluatedUi: builder.query<EvaluatedUi, { requestCaseId: string; actorId: string }>({
-      query: ({ requestCaseId, actorId }) => `api/request-cases/${requestCaseId}/evaluated-ui?actorId=${actorId}`,
-      providesTags: ["EvaluatedUi"],
+    fetchEvaluationContext: builder.query<EvaluationContext, { requestCaseId: string; actorId: string }>({
+      query: ({ requestCaseId, actorId }) => `api/request-cases/${requestCaseId}/evaluation-context?actorId=${actorId}`,
+      providesTags: ["EvaluationContext"],
     }),
     resetDemoData: builder.mutation<unknown, void>({
       query: () => ({
         url: "api/dev/demo/reset",
         method: "POST",
       }),
-      invalidatesTags: ["Actors", "EvaluatedUi"],
+      invalidatesTags: ["Actors", "EvaluationContext"],
     }),
     reloadStartupInvestmentDefinitions: builder.mutation<unknown, void>({
       query: () => ({
         url: "api/dev/definitions/reload/startup-investment",
         method: "POST",
       }),
-      invalidatesTags: ["EvaluatedUi"],
+      invalidatesTags: ["EvaluationContext"],
     }),
     patchRequestData: builder.mutation<unknown, { requestCaseId: string; actorId: string; updates: RequestDataUpdate[] }>({
       query: ({ requestCaseId, actorId, updates }) => ({
@@ -37,7 +37,7 @@ export const approvalApi = createApi({
         method: "PATCH",
         body: { updates },
       }),
-      invalidatesTags: ["EvaluatedUi"],
+      invalidatesTags: ["EvaluationContext"],
     }),
     executeRequestAction: builder.mutation<unknown, { requestCaseId: string; actorId: string; actionId: string }>({
       query: ({ requestCaseId, actorId, actionId }) => ({
@@ -45,14 +45,14 @@ export const approvalApi = createApi({
         method: "POST",
         body: {},
       }),
-      invalidatesTags: ["EvaluatedUi"],
+      invalidatesTags: ["EvaluationContext"],
     }),
   }),
 });
 
 export const {
   useFetchDemoActorsQuery,
-  useFetchEvaluatedUiQuery,
+  useFetchEvaluationContextQuery,
   useResetDemoDataMutation,
   useReloadStartupInvestmentDefinitionsMutation,
   usePatchRequestDataMutation,
