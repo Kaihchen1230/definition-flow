@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useExecuteRequestActionMutation, usePatchRequestDataMutation } from "../../services/approvalApi";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { getPath } from "../../utils/objectPath";
+import { evaluatePageCompletion } from "../../utils/pageCompletion";
 import { collectDataPaths } from "../../utils/uiNode";
 import { RenderNode } from "../request-renderer/RenderNode";
 import type { EvaluatedUi, UiNode } from "../../types/api";
@@ -33,7 +34,10 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
   }, [dispatch, evaluated.requestData]);
 
   const visiblePages = evaluated.pages.filter((page) => page.visible);
+  const pageCompletion = useMemo(() => new Map(visiblePages.map((page) => [page.id, evaluatePageCompletion(page, draft)])), [draft, visiblePages]);
+  const firstIncompletePage = visiblePages.find((page) => !pageCompletion.get(page.id)?.complete);
   const pageDataPaths = selectedPage ? collectDataPaths(selectedPage) : [];
+  const selectedCompletion = selectedPage ? pageCompletion.get(selectedPage.id) : undefined;
   const canSavePage = evaluated.canSave && pageDataPaths.length > 0;
   const savePage = () => {
     patchRequest({
@@ -45,6 +49,10 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
   const runAction = (actionId: string) => {
     if (actionId.startsWith("workflow.submit")) {
       dispatch(enableValidationMode());
+      if (firstIncompletePage) {
+        setSelectedPageId(firstIncompletePage.id);
+        return;
+      }
     }
     runRequestAction({ requestCaseId: evaluated.requestCaseId, userId, actionId });
   };
@@ -53,15 +61,20 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
     <div className={`workbench-grid ${showEvaluationTrace ? "" : "without-trace"}`}>
       <aside className="panel nav-panel">
         <div className="nav-label">Request pages</div>
-        {visiblePages.map((page) => (
-          <button
-            key={page.id}
-            className={`nav-item ${selectedPageId === page.id ? "active" : ""}`}
-            onClick={() => setSelectedPageId(page.id)}
-          >
-            {page.label}
-          </button>
-        ))}
+        {visiblePages.map((page) => {
+          const completion = pageCompletion.get(page.id);
+          return (
+            <button
+              key={page.id}
+              className={`nav-item ${selectedPageId === page.id ? "active" : ""} ${completion?.complete ? "complete" : "incomplete"}`}
+              onClick={() => setSelectedPageId(page.id)}
+              title={completion?.complete ? "Complete" : `${completion?.missingCount ?? 0} required field${completion?.missingCount === 1 ? "" : "s"} missing`}
+            >
+              <span className="nav-item-label">{page.label}</span>
+              <PageStatusIcon complete={completion?.complete ?? true} />
+            </button>
+          );
+        })}
       </aside>
 
       <section className="min-w-0 space-y-3">
@@ -82,7 +95,7 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
             </div>
             <div className="content-stack">
               {(selectedPage.children ?? []).filter((node) => node.visible).map((node) => (
-                <RenderNode key={node.id} node={node} data={draft} setData={(value) => dispatch(setDraft(typeof value === "function" ? value(draft) : value))} userRole={evaluated.user.role} runAction={runAction} />
+                <RenderNode key={node.id} node={node} data={draft} setData={(value) => dispatch(setDraft(typeof value === "function" ? value(draft) : value))} userRole={evaluated.user.role} runAction={runAction} missingPaths={selectedCompletion?.missingPaths} validationActive={validationMode} />
               ))}
             </div>
           </div>
@@ -97,3 +110,19 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
     </div>
   );
 };
+
+const PageStatusIcon = ({ complete }: { complete: boolean }) => (
+  <span className={`page-status-icon ${complete ? "complete" : "incomplete"}`} aria-label={complete ? "Page complete" : "Page incomplete"} role="img">
+    {complete ? (
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M3.25 8.15 6.55 11.4l6.2-7.05" />
+      </svg>
+    ) : (
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M8 4.1v4.7" />
+        <path d="M8 11.9h.01" />
+        <circle cx="8" cy="8" r="6" />
+      </svg>
+    )}
+  </span>
+);

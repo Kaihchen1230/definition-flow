@@ -91,6 +91,21 @@ const renderWorkbench = () => {
   );
 };
 
+const renderWorkbenchWith = (ui: EvaluatedUi, selectedPageId = ui.pages[0].id) => {
+  const store = createStore();
+  return render(
+    <Provider store={store}>
+      <RequestWorkbench
+        evaluated={ui}
+        selectedPage={ui.pages.find((page) => page.id === selectedPageId)}
+        selectedPageId={selectedPageId}
+        setSelectedPageId={vi.fn()}
+        userId="analyst"
+      />
+    </Provider>
+  );
+};
+
 describe("RequestWorkbench validation mode", () => {
   afterEach(() => {
     cleanup();
@@ -136,5 +151,48 @@ describe("RequestWorkbench validation mode", () => {
     expect(requestBodies[0]).toEqual({
       updates: [{ path: "company.name", value: "Acme Robotics" }],
     });
+  });
+
+  it("marks missing required founder fields before submitting investment approval", async () => {
+    const user = userEvent.setup();
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ success: true, message: "Submitted", details: {} })));
+    vi.stubGlobal("fetch", fetch);
+    const ui: EvaluatedUi = {
+      ...evaluatedUi,
+      requestData: {
+        ...evaluatedUi.requestData,
+        founders: [{ name: "", title: "CEO", ownershipPercent: 60, backgroundCheck: "YES" }],
+      },
+      pages: [
+        {
+          id: "foundersOwnership",
+          type: "page",
+          label: "Founders & Ownership",
+          visible: true,
+          enabled: true,
+          disabled: false,
+          children: [
+            {
+              id: "foundersTable",
+              type: "collection",
+              component: "editableTable",
+              dataPath: "founders",
+              label: "Founders",
+              requiredFields: ["name", "title", "ownershipPercent", "backgroundCheck"],
+              visible: true,
+              enabled: true,
+              disabled: false,
+            },
+          ],
+        },
+      ],
+    };
+
+    renderWorkbenchWith(ui, "foundersOwnership");
+
+    await user.click(screen.getByRole("button", { name: "Submit for investment approval" }));
+
+    expect(screen.getByLabelText("Founder name").getAttribute("aria-invalid")).toBe("true");
+    expect(fetch).not.toHaveBeenCalled();
   });
 });

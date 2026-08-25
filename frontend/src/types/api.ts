@@ -20,6 +20,7 @@ export type UiNode = {
   debug?: Record<string, unknown>;
   children?: UiNode[];
   actions?: UiNode[];
+  requiredFields?: string[];
   actionType?: string;
   calculationId?: string;
 };
