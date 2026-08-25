@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useExecuteRequestActionMutation, usePatchRequestDataMutation } from "../../services/approvalApi";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
 import { getPath } from "../../utils/objectPath";
@@ -11,6 +11,8 @@ import { StatusBar } from "./StatusBar";
 import { TracePanel } from "./TracePanel";
 import { WorkflowActions } from "./WorkflowActions";
 import { enableValidationMode, setDraft } from "./requestWorkbenchSlice";
+
+const autoSaveDelayMs = 600;
 
 type RequestWorkbenchProps = {
   evaluated: EvaluatedUi;
@@ -27,6 +29,7 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
   const validationMode = useAppSelector((state) => state.requestWorkbench.validationMode);
   const [patchRequest, save] = usePatchRequestDataMutation();
   const [runRequestAction, action] = useExecuteRequestActionMutation();
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     dispatch(setDraft(evaluated.requestData));
@@ -35,21 +38,51 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
   const visiblePages = evaluated.pages.filter((page) => page.visible);
   const pageCompletion = useMemo(() => new Map(visiblePages.map((page) => [page.id, evaluatePageCompletion(page, draft)])), [draft, visiblePages]);
   const firstIncompletePage = visiblePages.find((page) => !pageCompletion.get(page.id)?.complete);
-  const pageDataPaths = selectedPage ? collectDataPaths(selectedPage) : [];
+  const pageDataPaths = useMemo(() => (selectedPage ? collectDataPaths(selectedPage) : []), [selectedPage]);
+  const pageDraftSnapshot = useMemo(() => JSON.stringify(pageDataPaths.map((path) => [path, getPath(draft, path)])), [draft, pageDataPaths]);
+  const savedPageSnapshot = useMemo(() => JSON.stringify(pageDataPaths.map((path) => [path, getPath(evaluated.requestData, path)])), [evaluated.requestData, pageDataPaths]);
   const selectedCompletion = selectedPage ? pageCompletion.get(selectedPage.id) : undefined;
   const canSavePage = evaluated.canSave && pageDataPaths.length > 0;
-  const savePage = () => {
+  const selectedPageHasUnsavedChanges = canSavePage && pageDraftSnapshot !== savedPageSnapshot;
+  const clearAutoSaveTimer = useCallback(() => {
+    if (autoSaveTimer.current) {
+      clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = null;
+    }
+  }, []);
+  const savePage = useCallback(() => {
+    if (!canSavePage) {
+      return;
+    }
     patchRequest({
       requestCaseId: evaluated.requestCaseId,
       userId,
       updates: pageDataPaths.map((path) => ({ path, value: getPath(draft, path) })),
     });
+  }, [canSavePage, draft, evaluated.requestCaseId, pageDataPaths, patchRequest, userId]);
+  useEffect(() => {
+    if (!selectedPageHasUnsavedChanges || save.isLoading) {
+      return clearAutoSaveTimer;
+    }
+    clearAutoSaveTimer();
+    autoSaveTimer.current = setTimeout(() => {
+      autoSaveTimer.current = null;
+      savePage();
+    }, autoSaveDelayMs);
+    return clearAutoSaveTimer;
+  }, [clearAutoSaveTimer, save.isLoading, savePage, selectedPageHasUnsavedChanges]);
+  const selectPage = (id: string) => {
+    if (selectedPageHasUnsavedChanges) {
+      clearAutoSaveTimer();
+      savePage();
+    }
+    setSelectedPageId(id);
   };
   const runAction = (actionId: string) => {
     if (actionId.startsWith("workflow.submit")) {
       dispatch(enableValidationMode());
       if (firstIncompletePage) {
-        setSelectedPageId(firstIncompletePage.id);
+        selectPage(firstIncompletePage.id);
         return;
       }
     }
@@ -66,7 +99,7 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
             <button
               key={page.id}
               className={`nav-item ${selectedPageId === page.id ? "active" : ""} ${completion?.complete ? "complete" : "incomplete"}`}
-              onClick={() => setSelectedPageId(page.id)}
+              onClick={() => selectPage(page.id)}
               title={completion?.complete ? "Complete" : `${completion?.missingCount ?? 0} required field${completion?.missingCount === 1 ? "" : "s"} missing`}
             >
               <span className="nav-item-label">{page.label}</span>
@@ -88,7 +121,7 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
                 <h2 className="mt-1 text-lg font-semibold tracking-[-0.01em]">{selectedPage.label}</h2>
               </div>
               <button className="button" onClick={savePage} disabled={save.isLoading || !canSavePage}>
-                Save page
+                {save.isLoading ? "Saving..." : "Save page"}
               </button>
             </div>
             <div className="content-stack">
