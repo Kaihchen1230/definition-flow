@@ -5,7 +5,7 @@ This repository is a proof of concept for turning an approval workflow applicati
 The POC uses a startup investment approval scenario to demonstrate:
 
 - modular backend YAML definitions for data schema, rules, derived facts, calculations, and workflow
-- frontend-owned typed UI layout config
+- frontend-owned typed UI layout config, required-field metadata, and page completion indicators
 - a Java Spring Boot backend as a modular monolith
 - Postgres as the target persistence mode, with H2 as a convenience fallback
 - a React/Vite frontend using Redux Toolkit and RTK Query
@@ -111,7 +111,7 @@ The POC currently includes:
 7. Backend evaluation context endpoint with trusted rule results, validation, workflow actions, and request data.
 8. Page-scoped save patching plus calculate, submit, approve, decline, and withdraw action endpoints.
 9. Redux Toolkit/RTK Query frontend state and backend API integration.
-10. Frontend-owned UI layout with page navigation, page-scoped saves, editable fields/tables/lists, validation summary, workflow actions, and rule trace panel.
+10. Frontend-owned UI layout with page navigation, page-scoped saves, editable fields/tables/lists, inline required-field validation, add/remove collection controls, workflow actions, and optional rule trace panel.
 11. Baseline backend API integration tests and frontend UI behavior tests.
 
 ## Demo Flow

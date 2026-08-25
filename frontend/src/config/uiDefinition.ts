@@ -47,6 +47,7 @@ export const startupInvestmentUiDefinition = {
           component: "editableTable",
           dataPath: "founders",
           label: "Founders",
+          requiredFields: ["name", "title", "ownershipPercent", "backgroundCheck"],
           actions: [{ id: "addFounder", type: "action", actionType: "collection.addItem", enabledRule: "canEditInvestmentReview" }],
         },
       ],

@@ -12,11 +12,13 @@ type RenderNodeProps = {
   setData: Dispatch<SetStateAction<Record<string, any>>>;
   userRole: string;
   runAction: (id: string) => void;
+  missingPaths?: Set<string>;
+  validationActive?: boolean;
 };
 
-export const RenderNode = ({ node, data, setData, userRole, runAction }: RenderNodeProps) => {
+export const RenderNode = ({ node, data, setData, userRole, runAction, missingPaths, validationActive }: RenderNodeProps) => {
   if (node.type === "collection" && node.dataPath === "founders") {
-    return <FoundersTable node={node} data={data} setData={setData} />;
+    return <FoundersTable node={node} data={data} setData={setData} missingPaths={missingPaths} validationActive={validationActive} />;
   }
   if (node.type === "collection" && node.dataPath === "exceptions") {
     return <ExceptionList node={node} data={data} setData={setData} userRole={userRole} />;

@@ -58,7 +58,7 @@ The POC demonstrates:
 - derived investment variant
 - manual approval route calculation
 - stale calculation tracking
-- structured validation summary
+- inline required-field validation with page completion indicators
 - rule evaluation trace/debug panel
 - Postgres persistence and audit
 - H2 fallback for restricted environments

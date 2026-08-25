@@ -91,13 +91,28 @@ const renderWorkbench = () => {
   );
 };
 
+const renderWorkbenchWith = (ui: EvaluatedUi, selectedPageId = ui.pages[0].id) => {
+  const store = createStore();
+  return render(
+    <Provider store={store}>
+      <RequestWorkbench
+        evaluated={ui}
+        selectedPage={ui.pages.find((page) => page.id === selectedPageId)}
+        selectedPageId={selectedPageId}
+        setSelectedPageId={vi.fn()}
+        userId="analyst"
+      />
+    </Provider>
+  );
+};
+
 describe("RequestWorkbench validation mode", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
   });
 
-  it("shows validation messages only after the first submit action attempt in the session", async () => {
+  it("shows the submit action result without the blocking validation summary panel", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
       "fetch",
@@ -106,11 +121,12 @@ describe("RequestWorkbench validation mode", () => {
 
     renderWorkbench();
 
-    expect(screen.queryByText("Approval route must be calculated before submit.")).toBeNull();
+    expect(screen.queryByText("Blocking validation summary")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Submit for investment approval" }));
 
-    expect(await screen.findByText(/Approval route must be calculated before submit\./)).toBeTruthy();
+    expect(await screen.findByText(/Blocking validations must be resolved\./)).toBeTruthy();
+    expect(screen.queryByText("Blocking validation summary")).toBeNull();
   });
 
   it("saves only data paths from the selected page", async () => {
@@ -136,5 +152,89 @@ describe("RequestWorkbench validation mode", () => {
     expect(requestBodies[0]).toEqual({
       updates: [{ path: "company.name", value: "Acme Robotics" }],
     });
+  });
+
+  it("marks missing required founder fields before submitting investment approval", async () => {
+    const user = userEvent.setup();
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ success: true, message: "Submitted", details: {} })));
+    vi.stubGlobal("fetch", fetch);
+    const ui: EvaluatedUi = {
+      ...evaluatedUi,
+      requestData: {
+        ...evaluatedUi.requestData,
+        founders: [{ name: "", title: "CEO", ownershipPercent: 60, backgroundCheck: "YES" }],
+      },
+      pages: [
+        {
+          id: "foundersOwnership",
+          type: "page",
+          label: "Founders & Ownership",
+          visible: true,
+          enabled: true,
+          disabled: false,
+          children: [
+            {
+              id: "foundersTable",
+              type: "collection",
+              component: "editableTable",
+              dataPath: "founders",
+              label: "Founders",
+              requiredFields: ["name", "title", "ownershipPercent", "backgroundCheck"],
+              visible: true,
+              enabled: true,
+              disabled: false,
+            },
+          ],
+        },
+      ],
+    };
+
+    renderWorkbenchWith(ui, "foundersOwnership");
+
+    await user.click(screen.getByRole("button", { name: "Submit for investment approval" }));
+
+    expect(screen.getByLabelText("Founder name").getAttribute("aria-invalid")).toBe("true");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("allows removing founder rows when the table can add rows", async () => {
+    const user = userEvent.setup();
+    const ui: EvaluatedUi = {
+      ...evaluatedUi,
+      requestData: {
+        ...evaluatedUi.requestData,
+        founders: [{ name: "Morgan Lee", title: "CEO", ownershipPercent: 60, backgroundCheck: "YES" }],
+      },
+      pages: [
+        {
+          id: "foundersOwnership",
+          type: "page",
+          label: "Founders & Ownership",
+          visible: true,
+          enabled: true,
+          disabled: false,
+          children: [
+            {
+              id: "foundersTable",
+              type: "collection",
+              component: "editableTable",
+              dataPath: "founders",
+              label: "Founders",
+              requiredFields: ["name", "title", "ownershipPercent", "backgroundCheck"],
+              visible: true,
+              enabled: true,
+              disabled: false,
+            },
+          ],
+        },
+      ],
+    };
+
+    renderWorkbenchWith(ui, "foundersOwnership");
+
+    expect(screen.getByLabelText("Founder name")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Remove founder 1" }));
+
+    expect(screen.queryByLabelText("Founder name")).toBeNull();
   });
 });
