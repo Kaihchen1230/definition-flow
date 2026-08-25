@@ -17,6 +17,21 @@ type RenderNodeProps = {
 };
 
 export const RenderNode = ({ node, data, setData, userRole, runAction, missingPaths, validationActive }: RenderNodeProps) => {
+  if (node.type === "section") {
+    const visibleChildren = (node.children ?? []).filter((child) => child.visible);
+    return (
+      <section className="subpanel">
+        <div className="section-head">
+          <h3>{node.label}</h3>
+        </div>
+        <div className="content-stack">
+          {visibleChildren.map((child) => (
+            <RenderNode key={child.id} node={child} data={data} setData={setData} userRole={userRole} runAction={runAction} missingPaths={missingPaths} validationActive={validationActive} />
+          ))}
+        </div>
+      </section>
+    );
+  }
   if (node.type === "collection" && node.dataPath === "founders") {
     return <FoundersTable node={node} data={data} setData={setData} missingPaths={missingPaths} validationActive={validationActive} />;
   }

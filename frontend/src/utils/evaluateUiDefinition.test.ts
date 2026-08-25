@@ -57,4 +57,42 @@ describe("evaluateUiDefinition", () => {
     expect(evaluated[1].visible).toBe(false);
     expect(evaluated[1].debug?.visibleRule).toEqual({ result: false, trace: [] });
   });
+
+  it("applies visibility rules to nested sections", () => {
+    const pages: UiConfigNode[] = [
+      {
+        id: "approvalRoute",
+        type: "page",
+        label: "Approval Route",
+        children: [
+          {
+            id: "enhancedRiskRouteGuidance",
+            type: "section",
+            label: "Enhanced Risk Inputs",
+            visibleRule: "showRiskPage",
+            children: [
+              {
+                id: "riskRecommendation",
+                type: "field",
+                component: "radioGroup",
+                dataPath: "risk.recommendation",
+                label: "Risk Recommendation",
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    const hidden = evaluateUiDefinition(pages, context);
+    const visible = evaluateUiDefinition(pages, {
+      ...context,
+      ruleResults: { ...context.ruleResults, showRiskPage: { result: true, trace: [] } },
+    });
+
+    expect(hidden[0].children?.[0].visible).toBe(false);
+    expect(hidden[0].children?.[0].children?.[0].visible).toBe(false);
+    expect(visible[0].children?.[0].visible).toBe(true);
+    expect(visible[0].children?.[0].children?.[0].visible).toBe(true);
+  });
 });
