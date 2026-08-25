@@ -1,5 +1,5 @@
 import { Provider } from "react-redux";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createStore } from "../../store/store";
@@ -110,6 +110,7 @@ describe("RequestWorkbench validation mode", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+    vi.useRealTimers();
   });
 
   it("shows the submit action result without the blocking validation summary panel", async () => {
@@ -151,6 +152,34 @@ describe("RequestWorkbench validation mode", () => {
     await waitFor(() => expect(requestBodies).toHaveLength(1));
     expect(requestBodies[0]).toEqual({
       updates: [{ path: "company.name", value: "Acme Robotics" }],
+    });
+  });
+
+  it("auto-saves changed data paths from the selected page", async () => {
+    vi.useFakeTimers();
+    const requestBodies: any[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input, init) => {
+        const request = input instanceof Request ? input : undefined;
+        const method = request?.method ?? init?.method;
+        if (method === "PATCH") {
+          requestBodies.push(request ? await request.clone().json() : JSON.parse(init?.body as string));
+        }
+        return new Response(JSON.stringify({ success: true, message: "Saved", details: {} }));
+      })
+    );
+
+    renderWorkbench();
+
+    fireEvent.change(screen.getByDisplayValue("Acme Robotics"), { target: { value: "Acme Labs" } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(600);
+    });
+
+    expect(requestBodies).toHaveLength(1);
+    expect(requestBodies[0]).toEqual({
+      updates: [{ path: "company.name", value: "Acme Labs" }],
     });
   });
 
