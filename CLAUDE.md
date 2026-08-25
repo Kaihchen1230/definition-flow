@@ -19,7 +19,8 @@ Use this guide when making changes in this repository so the POC stays consisten
 - Use RTK Query for backend request/mutation endpoints in `frontend/src/services/`.
 - Put Redux store setup and typed hooks in `frontend/src/store/`.
 - Put shared API response types in `frontend/src/types/`.
-- Put static frontend config in `frontend/src/config/`, including frontend-owned typed UI layout objects.
+- Put static frontend config in `frontend/src/config/`.
+- Keep frontend-owned request page UI config in `frontend/src/config/pages/`, one file per page; assemble page order in `frontend/src/config/uiDefinition.ts`.
 - Put reusable request workbench panels in `frontend/src/features/request-workbench/`.
 - Put dynamic request rendering components in `frontend/src/features/request-renderer/`.
 - Put generic helpers in `frontend/src/utils/`.
@@ -60,7 +61,8 @@ Use this guide when making changes in this repository so the POC stays consisten
 
 - `rules.yaml`: decision and capability DSL.
 - `workflow.yaml`: workflow/state-machine DSL.
-- `frontend/src/config/uiDefinition.ts`: UI layout/config object owned by the frontend.
+- `frontend/src/config/uiDefinition.ts`: frontend UI definition assembly and shared UI config types.
+- `frontend/src/config/pages/*.ts`: frontend-owned UI layout/config objects, one module per request page.
 - `data-schema.yaml`: request data model DSL.
 - `derived-facts.yaml`: derived data DSL.
 - `calculations.yaml`: calculation definition DSL.
