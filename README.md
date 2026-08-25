@@ -34,7 +34,8 @@ frontend/src/services/                    RTK Query API service
 frontend/src/store/                       Redux store setup and typed hooks
 frontend/src/features/request-workbench/  Request workbench panels and local UI state slice
 frontend/src/features/request-renderer/   Dynamic field, collection, and action renderers
-frontend/src/config/                      Static frontend config, enum options, and typed UI layout
+frontend/src/config/                      Static frontend config, enum options, and UI layout assembly
+frontend/src/config/pages/                One frontend-owned UI config module per request page
 frontend/src/types/                       Shared API response types
 frontend/src/utils/                       Generic helpers
 ```
