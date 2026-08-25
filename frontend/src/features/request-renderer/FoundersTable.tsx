@@ -24,6 +24,9 @@ export const FoundersTable = ({ node, data, setData, missingPaths = new Set(), v
   const addFounder = () => {
     setData((current) => ({ ...current, founders: [...(Array.isArray(current.founders) ? current.founders : []), { name: "", title: "", ownershipPercent: "", backgroundCheck: "" }] }));
   };
+  const removeFounder = (index: number) => {
+    setData((current) => ({ ...current, founders: (Array.isArray(current.founders) ? current.founders : []).filter((_: any, i: number) => i !== index) }));
+  };
   return (
     <section className={`subpanel ${validationActive && missingPaths.size > 0 ? "validation-surface" : ""}`}>
       <div className="section-head">
@@ -43,6 +46,7 @@ export const FoundersTable = ({ node, data, setData, missingPaths = new Set(), v
               <th>Title</th>
               <th>Ownership %</th>
               <th>Background</th>
+              <th className="action-column">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -63,6 +67,11 @@ export const FoundersTable = ({ node, data, setData, missingPaths = new Set(), v
                     {yesNoNa().map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
                   </select>
                 </td>
+                <td className="action-column">
+                  <button className="icon-button danger" type="button" aria-label={`Remove founder ${index + 1}`} disabled={disabled} onClick={() => removeFounder(index)}>
+                    <TrashIcon />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -71,3 +80,13 @@ export const FoundersTable = ({ node, data, setData, missingPaths = new Set(), v
     </section>
   );
 };
+
+const TrashIcon = () => (
+  <svg viewBox="0 0 16 16" aria-hidden="true">
+    <path d="M3.5 4.5h9" />
+    <path d="M6.5 4.5V3.3h3v1.2" />
+    <path d="m5 6 .35 6.6h5.3L11 6" />
+    <path d="M7 7.2v4" />
+    <path d="M9 7.2v4" />
+  </svg>
+);

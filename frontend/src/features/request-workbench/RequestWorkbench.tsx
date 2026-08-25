@@ -9,7 +9,6 @@ import type { EvaluatedUi, UiNode } from "../../types/api";
 import { ActionMessage } from "./ActionMessage";
 import { StatusBar } from "./StatusBar";
 import { TracePanel } from "./TracePanel";
-import { ValidationSummary } from "./ValidationSummary";
 import { WorkflowActions } from "./WorkflowActions";
 import { enableValidationMode, setDraft } from "./requestWorkbenchSlice";
 
@@ -79,7 +78,6 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
 
       <section className="min-w-0 space-y-3">
         <StatusBar evaluated={evaluated} />
-        {validationMode && <ValidationSummary evaluated={evaluated} />}
         <WorkflowActions actions={evaluated.workflowActions} runAction={runAction} pending={action.isLoading} />
         {action.data ? <ActionMessage result={action.data as { success: boolean; message: string }} /> : null}
         {selectedPage && (

@@ -212,6 +212,43 @@ body {
   opacity: 0.5;
 }
 
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.icon-button svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.icon-button:hover:not(:disabled),
+.icon-button:focus-visible {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+  box-shadow: 0 0 0 3px rgba(161, 63, 53, 0.12);
+  outline: none;
+}
+
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .nav-item {
   display: flex;
   align-items: center;
@@ -443,6 +480,14 @@ body {
   padding: 10px;
 }
 
+.exception-item-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
 .meta-chip {
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -472,6 +517,12 @@ body {
   border-bottom: 1px solid var(--line);
   padding: 8px;
   vertical-align: top;
+}
+
+.data-table .action-column {
+  width: 1%;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .data-table tbody tr:hover {

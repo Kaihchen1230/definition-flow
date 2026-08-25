@@ -112,7 +112,7 @@ describe("RequestWorkbench validation mode", () => {
     vi.unstubAllGlobals();
   });
 
-  it("shows validation messages only after the first submit action attempt in the session", async () => {
+  it("shows the submit action result without the blocking validation summary panel", async () => {
     const user = userEvent.setup();
     vi.stubGlobal(
       "fetch",
@@ -121,11 +121,12 @@ describe("RequestWorkbench validation mode", () => {
 
     renderWorkbench();
 
-    expect(screen.queryByText("Approval route must be calculated before submit.")).toBeNull();
+    expect(screen.queryByText("Blocking validation summary")).toBeNull();
 
     await user.click(screen.getByRole("button", { name: "Submit for investment approval" }));
 
-    expect(await screen.findByText(/Approval route must be calculated before submit\./)).toBeTruthy();
+    expect(await screen.findByText(/Blocking validations must be resolved\./)).toBeTruthy();
+    expect(screen.queryByText("Blocking validation summary")).toBeNull();
   });
 
   it("saves only data paths from the selected page", async () => {
@@ -194,5 +195,46 @@ describe("RequestWorkbench validation mode", () => {
 
     expect(screen.getByLabelText("Founder name").getAttribute("aria-invalid")).toBe("true");
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("allows removing founder rows when the table can add rows", async () => {
+    const user = userEvent.setup();
+    const ui: EvaluatedUi = {
+      ...evaluatedUi,
+      requestData: {
+        ...evaluatedUi.requestData,
+        founders: [{ name: "Morgan Lee", title: "CEO", ownershipPercent: 60, backgroundCheck: "YES" }],
+      },
+      pages: [
+        {
+          id: "foundersOwnership",
+          type: "page",
+          label: "Founders & Ownership",
+          visible: true,
+          enabled: true,
+          disabled: false,
+          children: [
+            {
+              id: "foundersTable",
+              type: "collection",
+              component: "editableTable",
+              dataPath: "founders",
+              label: "Founders",
+              requiredFields: ["name", "title", "ownershipPercent", "backgroundCheck"],
+              visible: true,
+              enabled: true,
+              disabled: false,
+            },
+          ],
+        },
+      ],
+    };
+
+    renderWorkbenchWith(ui, "foundersOwnership");
+
+    expect(screen.getByLabelText("Founder name")).toBeTruthy();
+    await user.click(screen.getByRole("button", { name: "Remove founder 1" }));
+
+    expect(screen.queryByLabelText("Founder name")).toBeNull();
   });
 });
