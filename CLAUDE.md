@@ -29,8 +29,9 @@ Use this guide when making changes in this repository so the POC stays consisten
 - Evaluate UI layout visibility/enabled state in the frontend using backend-provided trusted `ruleResults`; do not make the backend load or interpret UI layout config.
 - Do not reintroduce large multi-purpose files like the original all-in-one `main.tsx`.
 - Do not add React Query for new data fetching; use the existing RTK Query service.
-- Show frontend validation summaries only after validation mode is enabled in the current session.
-- Enable validation mode when the user first attempts a submit workflow action.
+- Enable frontend validation mode when the user first attempts a submit workflow action.
+- Surface frontend-required fields inline with field-level invalid states and page completion indicators; do not reintroduce a broad validation summary panel unless the product direction changes.
+- Pair add/remove controls for editable frontend collections when the user is allowed to add items.
 
 ## Frontend Formatting
 
