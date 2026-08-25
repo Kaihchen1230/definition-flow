@@ -10,11 +10,13 @@ type FieldProps = {
 export const Field = ({ node, value, onChange }: FieldProps) => {
   const disabled = node.disabled;
   const options = enumOptions[node.dataPath ?? ""] ?? [];
+  const helperId = `${node.id}-helper`;
   if (node.component === "textarea") {
     return (
       <label className="field">
         <span>{node.label}</span>
-        <textarea className="control min-h-24" value={value ?? ""} disabled={disabled} onChange={(event) => onChange(event.target.value)} />
+        <textarea className="control min-h-28" value={value ?? ""} disabled={disabled} aria-describedby={helperId} onChange={(event) => onChange(event.target.value)} />
+        <em id={helperId}>Saved with this page only.</em>
       </label>
     );
   }
@@ -22,14 +24,15 @@ export const Field = ({ node, value, onChange }: FieldProps) => {
     return (
       <label className="field">
         <span>{node.label}</span>
-        <select className="control" value={value ?? ""} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
-          <option value="">Select...</option>
+        <select className="control" value={value ?? ""} disabled={disabled} aria-describedby={helperId} onChange={(event) => onChange(event.target.value)}>
+          <option value="">Select</option>
           {options.map((option) => (
             <option value={option.value} key={option.value}>
               {option.label}
             </option>
           ))}
         </select>
+        <em id={helperId}>{disabled ? "Read-only for this role and workflow state." : "Choose the current request value."}</em>
       </label>
     );
   }
@@ -37,7 +40,7 @@ export const Field = ({ node, value, onChange }: FieldProps) => {
     return (
       <div className="field">
         <span>{node.label}</span>
-        <div className="flex flex-wrap gap-2">
+        <div className="choice-grid compact">
           {options.map((option) => (
             <label className="choice" key={option.value}>
               <input type="radio" checked={value === option.value} disabled={disabled} onChange={() => onChange(option.value)} />
@@ -53,7 +56,7 @@ export const Field = ({ node, value, onChange }: FieldProps) => {
     return (
       <div className="field">
         <span>{node.label}</span>
-        <div className="grid grid-cols-2 gap-2">
+        <div className="choice-grid">
           {options.map((option) => (
             <label className="choice" key={option.value}>
               <input
@@ -73,7 +76,8 @@ export const Field = ({ node, value, onChange }: FieldProps) => {
   return (
     <label className="field">
       <span>{node.label}</span>
-      <input className="control" type={inputType} value={value ?? ""} disabled={disabled} onChange={(event) => onChange(inputType === "number" ? Number(event.target.value) : event.target.value)} />
+      <input className="control" type={inputType} value={value ?? ""} disabled={disabled} aria-describedby={helperId} onChange={(event) => onChange(inputType === "number" ? Number(event.target.value) : event.target.value)} />
+      <em id={helperId}>{disabled ? "Read-only for this role and workflow state." : "Editable request data."}</em>
     </label>
   );
 };

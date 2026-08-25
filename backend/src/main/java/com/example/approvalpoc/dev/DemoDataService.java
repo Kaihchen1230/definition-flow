@@ -16,20 +16,20 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class DemoDataService {
     public static final UUID DEMO_REQUEST_ID = UUID.fromString("11111111-1111-1111-1111-111111111111");
-    private final DemoActorRepository actorRepository;
+    private final DemoUserRepository userRepository;
     private final RequestCaseRepository requestCaseRepository;
     private final CalculationResultRepository calculationResultRepository;
     private final AuditEventRepository auditEventRepository;
     private final ObjectMapper objectMapper;
 
     public DemoDataService(
-            DemoActorRepository actorRepository,
+            DemoUserRepository userRepository,
             RequestCaseRepository requestCaseRepository,
             CalculationResultRepository calculationResultRepository,
             AuditEventRepository auditEventRepository,
             ObjectMapper objectMapper
     ) {
-        this.actorRepository = actorRepository;
+        this.userRepository = userRepository;
         this.requestCaseRepository = requestCaseRepository;
         this.calculationResultRepository = calculationResultRepository;
         this.auditEventRepository = auditEventRepository;
@@ -41,9 +41,9 @@ public class DemoDataService {
         auditEventRepository.deleteAll();
         calculationResultRepository.deleteAll();
         requestCaseRepository.deleteAll();
-        actorRepository.deleteAll();
+        userRepository.deleteAll();
 
-        seedActors();
+        seedUsers();
         requestCaseRepository.save(new RequestCaseEntity(
                 DEMO_REQUEST_ID,
                 "startupInvestment",
@@ -57,40 +57,40 @@ public class DemoDataService {
 
         return Map.of(
                 "requestCaseId", DEMO_REQUEST_ID.toString(),
-                "actors", actorRepository.findAll().size()
+                "users", userRepository.findAll().size()
         );
     }
 
-    private void seedActors() {
-        actorRepository.save(new DemoActorEntity(
+    private void seedUsers() {
+        userRepository.save(new DemoUserEntity(
                 "analyst",
                 "Avery Analyst",
                 "InvestmentAnalyst",
                 writeJson(List.of("EDIT_INVESTMENT_REQUEST", "WITHDRAW_REQUEST")),
                 writeJson(List.of("InvestmentTeam"))
         ));
-        actorRepository.save(new DemoActorEntity(
+        userRepository.save(new DemoUserEntity(
                 "investment-approver",
                 "Iris Investment Approver",
                 "InvestmentAnalyst",
                 writeJson(List.of("EDIT_INVESTMENT_REQUEST", "APPROVE_INVESTMENT_REVIEW", "DECLINE_REQUEST", "WITHDRAW_REQUEST")),
                 writeJson(List.of("InvestmentTeam"))
         ));
-        actorRepository.save(new DemoActorEntity(
+        userRepository.save(new DemoUserEntity(
                 "risk-officer",
                 "Riley Risk Officer",
                 "RiskOfficer",
                 writeJson(List.of("EDIT_RISK_REVIEW")),
                 writeJson(List.of("RiskTeam"))
         ));
-        actorRepository.save(new DemoActorEntity(
+        userRepository.save(new DemoUserEntity(
                 "risk-approver",
                 "Reese Risk Approver",
                 "RiskOfficer",
                 writeJson(List.of("EDIT_RISK_REVIEW", "APPROVE_FINAL_REQUEST", "DECLINE_REQUEST")),
                 writeJson(List.of("RiskTeam"))
         ));
-        actorRepository.save(new DemoActorEntity(
+        userRepository.save(new DemoUserEntity(
                 "support",
                 "Sam Support Viewer",
                 "Support",

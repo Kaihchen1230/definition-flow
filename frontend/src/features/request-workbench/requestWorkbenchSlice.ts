@@ -1,14 +1,14 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 type RequestWorkbenchState = {
-  actorId: string;
+  userId: string;
   selectedPageId: string | null;
   draft: Record<string, any>;
   validationMode: boolean;
 };
 
 const initialState: RequestWorkbenchState = {
-  actorId: "analyst",
+  userId: "analyst",
   selectedPageId: null,
   draft: {},
   validationMode: false,
@@ -18,8 +18,8 @@ const requestWorkbenchSlice = createSlice({
   name: "requestWorkbench",
   initialState,
   reducers: {
-    setActorId: (state, action: PayloadAction<string>) => {
-      state.actorId = action.payload;
+    setUserId: (state, action: PayloadAction<string>) => {
+      state.userId = action.payload;
     },
     setSelectedPageId: (state, action: PayloadAction<string>) => {
       state.selectedPageId = action.payload;
@@ -33,5 +33,5 @@ const requestWorkbenchSlice = createSlice({
   },
 });
 
-export const { setActorId, setSelectedPageId, setDraft, enableValidationMode } = requestWorkbenchSlice.actions;
+export const { setUserId, setSelectedPageId, setDraft, enableValidationMode } = requestWorkbenchSlice.actions;
 export default requestWorkbenchSlice.reducer;

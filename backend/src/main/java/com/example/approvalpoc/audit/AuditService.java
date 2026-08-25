@@ -18,11 +18,11 @@ public class AuditService {
         this.objectMapper = objectMapper;
     }
 
-    public void record(UUID requestCaseId, String eventType, String actorId, String fromState, String toState, Map<DefinitionModuleType, Integer> versions, Object details) {
+    public void record(UUID requestCaseId, String eventType, String userId, String fromState, String toState, Map<DefinitionModuleType, Integer> versions, Object details) {
         repository.save(new AuditEventEntity(
                 requestCaseId,
                 eventType,
-                actorId,
+                userId,
                 fromState,
                 toState,
                 writeJson(versions),

@@ -10,11 +10,11 @@ const evaluatedUi: EvaluatedUi = {
   requestCaseId: "11111111-1111-1111-1111-111111111111",
   requestType: "startupInvestment",
   workflowState: "INVESTMENT_REVIEW",
-  actor: { userId: "analyst", displayName: "Avery Analyst", role: "InvestmentAnalyst", entitlements: ["EDIT_INVESTMENT_REQUEST"] },
+  user: { userId: "analyst", displayName: "Avery Analyst", role: "InvestmentAnalyst", entitlements: ["EDIT_INVESTMENT_REQUEST"] },
   requestData: {
     company: { name: "Acme Robotics" },
     investment: { amount: 6500000 },
-    internal: { note: "Hidden from this actor" },
+    internal: { note: "Hidden from this user" },
   },
   derived: { investmentVariant: "HIGH_RISK" },
   calculations: { approvalRoute: { exists: false, stale: true } },
@@ -85,7 +85,7 @@ const renderWorkbench = () => {
         selectedPage={evaluatedUi.pages[0]}
         selectedPageId="investmentTerms"
         setSelectedPageId={vi.fn()}
-        actorId="analyst"
+        userId="analyst"
       />
     </Provider>
   );

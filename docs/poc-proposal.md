@@ -26,7 +26,7 @@ Prove that a new lending or investment use case can be implemented through modul
 
 The POC uses a synthetic Startup Investment Approval Request.
 
-Actors:
+Demo users:
 
 - InvestmentAnalyst
 - InvestmentApprover
@@ -51,10 +51,10 @@ The POC demonstrates:
 
 - startup investment request rendered from definitions
 - text, dropdown, date, radio, checkbox, textarea, table, and collection UI patterns
-- page/section/field/action behavior based on actor, entitlement, workflow state, request data, derived facts, and calculation state
+- page/section/field/action behavior based on user role, entitlement, workflow state, request data, derived facts, and calculation state
 - collection add/remove permissions
 - role-authored data partitioning
-- reviewer confirmation pattern
+- user confirmation pattern
 - derived investment variant
 - manual approval route calculation
 - stale calculation tracking
@@ -104,4 +104,3 @@ Memo generation is part of the target architecture but not the initial working s
 ## Success Criteria
 
 The POC is successful if it can show a new startup investment approval flow driven by definitions, with backend-authoritative behavior and enough workflow/action complexity to prove this is an approval platform, not just a form renderer.
-

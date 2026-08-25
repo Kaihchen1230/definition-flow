@@ -48,7 +48,7 @@ public class RequestEvaluationService {
         response.put("requestCaseId", bundle.requestCase().getId().toString());
         response.put("requestType", bundle.requestCase().getRequestType());
         response.put("workflowState", bundle.requestCase().getWorkflowState());
-        response.set("actor", bundle.context().path("actor"));
+        response.set("user", bundle.context().path("user"));
         response.set("requestData", bundle.context().path("requestData"));
         response.set("derived", bundle.context().path("derived"));
         response.set("calculations", bundle.context().path("calculations"));

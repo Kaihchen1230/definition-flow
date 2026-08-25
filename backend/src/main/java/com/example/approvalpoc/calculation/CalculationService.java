@@ -56,7 +56,7 @@ public class CalculationService {
     }
 
     @Transactional
-    public CalculationResultEntity calculateApprovalRoute(UUID requestCaseId, String actorId, JsonNode calculationDefinition, JsonNode context) {
+    public CalculationResultEntity calculateApprovalRoute(UUID requestCaseId, String userId, JsonNode calculationDefinition, JsonNode context) {
         JsonNode definition = calculationDefinition.path("calculations").path("approvalRoute");
         int amount = context.path("requestData").path("investment").path("amount").asInt(0);
         String variant = context.path("derived").path("investmentVariant").asText("STANDARD");
@@ -72,10 +72,10 @@ public class CalculationService {
 
         String inputHash = dependencyHash(definition, context);
         CalculationResultEntity entity = repository.findFirstByRequestCaseIdAndCalculationIdOrderByCalculatedAtDesc(requestCaseId, "approvalRoute")
-                .orElseGet(() -> new CalculationResultEntity(requestCaseId, "approvalRoute", "{}", inputHash, actorId, Instant.now()));
+                .orElseGet(() -> new CalculationResultEntity(requestCaseId, "approvalRoute", "{}", inputHash, userId, Instant.now()));
         entity.setResultJson(writeJson(result));
         entity.setInputHash(inputHash);
-        entity.setCalculatedBy(actorId);
+        entity.setCalculatedBy(userId);
         entity.setCalculatedAt(Instant.now());
         return repository.save(entity);
     }

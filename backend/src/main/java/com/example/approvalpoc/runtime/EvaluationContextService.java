@@ -4,8 +4,8 @@ import com.example.approvalpoc.calculation.CalculationService;
 import com.example.approvalpoc.definition.DefinitionModuleType;
 import com.example.approvalpoc.definition.DefinitionService;
 import com.example.approvalpoc.derived.DerivedFactService;
-import com.example.approvalpoc.dev.DemoActorEntity;
-import com.example.approvalpoc.dev.DemoActorRepository;
+import com.example.approvalpoc.dev.DemoUserEntity;
+import com.example.approvalpoc.dev.DemoUserRepository;
 import com.example.approvalpoc.requestcase.RequestCaseEntity;
 import com.example.approvalpoc.requestcase.RequestCaseRepository;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class EvaluationContextService {
     private final RequestCaseRepository requestCaseRepository;
-    private final DemoActorRepository actorRepository;
+    private final DemoUserRepository userRepository;
     private final DefinitionService definitionService;
     private final DerivedFactService derivedFactService;
     private final CalculationService calculationService;
@@ -27,25 +27,25 @@ public class EvaluationContextService {
 
     public EvaluationContextService(
             RequestCaseRepository requestCaseRepository,
-            DemoActorRepository actorRepository,
+            DemoUserRepository userRepository,
             DefinitionService definitionService,
             DerivedFactService derivedFactService,
             CalculationService calculationService,
             ObjectMapper objectMapper
     ) {
         this.requestCaseRepository = requestCaseRepository;
-        this.actorRepository = actorRepository;
+        this.userRepository = userRepository;
         this.definitionService = definitionService;
         this.derivedFactService = derivedFactService;
         this.calculationService = calculationService;
         this.objectMapper = objectMapper;
     }
 
-    public RuntimeBundle bundle(UUID requestCaseId, String actorId, String scope) {
+    public RuntimeBundle bundle(UUID requestCaseId, String userId, String scope) {
         RequestCaseEntity requestCase = requestCaseRepository.findById(requestCaseId)
                 .orElseThrow(() -> new IllegalArgumentException("Unknown request case: " + requestCaseId));
-        DemoActorEntity actor = actorRepository.findById(actorId)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown actor: " + actorId));
+        DemoUserEntity user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown user: " + userId));
 
         JsonNode requestData = readJson(requestCase.getRequestData());
         JsonNode rules = definitionService.activeDefinition(requestCase.getRequestType(), DefinitionModuleType.RULES);
@@ -53,7 +53,7 @@ public class EvaluationContextService {
         JsonNode calculationDefinition = definitionService.activeDefinition(requestCase.getRequestType(), DefinitionModuleType.CALCULATIONS);
 
         ObjectNode context = objectMapper.createObjectNode();
-        context.set("actor", actorNode(actor));
+        context.set("user", userNode(user));
         context.set("workflow", objectMapper.createObjectNode().put("state", requestCase.getWorkflowState()));
         context.set("request", requestNode(requestCase));
         context.set("requestData", requestData);
@@ -66,16 +66,16 @@ public class EvaluationContextService {
         context.set("derived", derived);
         JsonNode calculations = calculationService.calculationContext(requestCase.getId(), calculationDefinition, context);
         context.set("calculations", calculations);
-        return new RuntimeBundle(requestCase, actor, context, rules);
+        return new RuntimeBundle(requestCase, user, context, rules);
     }
 
-    private ObjectNode actorNode(DemoActorEntity actor) {
+    private ObjectNode userNode(DemoUserEntity user) {
         ObjectNode node = objectMapper.createObjectNode();
-        node.put("userId", actor.getId());
-        node.put("displayName", actor.getDisplayName());
-        node.put("role", actor.getRole());
-        node.set("entitlements", readJson(actor.getEntitlements()));
-        node.set("groups", readJson(actor.getGroupsJson()));
+        node.put("userId", user.getId());
+        node.put("displayName", user.getDisplayName());
+        node.put("role", user.getRole());
+        node.set("entitlements", readJson(user.getEntitlements()));
+        node.set("groups", readJson(user.getGroupsJson()));
         return node;
     }
 

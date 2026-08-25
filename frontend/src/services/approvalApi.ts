@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { Actor, EvaluationContext, RequestDataUpdate } from "../types/api";
+import type { User, EvaluationContext, RequestDataUpdate } from "../types/api";
 
 export const demoRequestId = "11111111-1111-1111-1111-111111111111";
 const apiBaseUrl = typeof window === "undefined" ? "/" : `${window.location.origin}/`;
@@ -7,14 +7,14 @@ const apiBaseUrl = typeof window === "undefined" ? "/" : `${window.location.orig
 export const approvalApi = createApi({
   reducerPath: "approvalApi",
   baseQuery: fetchBaseQuery({ baseUrl: apiBaseUrl }),
-  tagTypes: ["Actors", "EvaluationContext"],
+  tagTypes: ["Users", "EvaluationContext"],
   endpoints: (builder) => ({
-    fetchDemoActors: builder.query<Actor[], void>({
-      query: () => "api/dev/demo/actors",
-      providesTags: ["Actors"],
+    fetchDemoUsers: builder.query<User[], void>({
+      query: () => "api/dev/demo/users",
+      providesTags: ["Users"],
     }),
-    fetchEvaluationContext: builder.query<EvaluationContext, { requestCaseId: string; actorId: string }>({
-      query: ({ requestCaseId, actorId }) => `api/request-cases/${requestCaseId}/evaluation-context?actorId=${actorId}`,
+    fetchEvaluationContext: builder.query<EvaluationContext, { requestCaseId: string; userId: string }>({
+      query: ({ requestCaseId, userId }) => `api/request-cases/${requestCaseId}/evaluation-context?userId=${userId}`,
       providesTags: ["EvaluationContext"],
     }),
     resetDemoData: builder.mutation<unknown, void>({
@@ -22,7 +22,7 @@ export const approvalApi = createApi({
         url: "api/dev/demo/reset",
         method: "POST",
       }),
-      invalidatesTags: ["Actors", "EvaluationContext"],
+      invalidatesTags: ["Users", "EvaluationContext"],
     }),
     reloadStartupInvestmentDefinitions: builder.mutation<unknown, void>({
       query: () => ({
@@ -31,17 +31,17 @@ export const approvalApi = createApi({
       }),
       invalidatesTags: ["EvaluationContext"],
     }),
-    patchRequestData: builder.mutation<unknown, { requestCaseId: string; actorId: string; updates: RequestDataUpdate[] }>({
-      query: ({ requestCaseId, actorId, updates }) => ({
-        url: `api/request-cases/${requestCaseId}/request-data?actorId=${actorId}`,
+    patchRequestData: builder.mutation<unknown, { requestCaseId: string; userId: string; updates: RequestDataUpdate[] }>({
+      query: ({ requestCaseId, userId, updates }) => ({
+        url: `api/request-cases/${requestCaseId}/request-data?userId=${userId}`,
         method: "PATCH",
         body: { updates },
       }),
       invalidatesTags: ["EvaluationContext"],
     }),
-    executeRequestAction: builder.mutation<unknown, { requestCaseId: string; actorId: string; actionId: string }>({
-      query: ({ requestCaseId, actorId, actionId }) => ({
-        url: `api/request-cases/${requestCaseId}/actions/${actionId}?actorId=${actorId}`,
+    executeRequestAction: builder.mutation<unknown, { requestCaseId: string; userId: string; actionId: string }>({
+      query: ({ requestCaseId, userId, actionId }) => ({
+        url: `api/request-cases/${requestCaseId}/actions/${actionId}?userId=${userId}`,
         method: "POST",
         body: {},
       }),
@@ -51,7 +51,7 @@ export const approvalApi = createApi({
 });
 
 export const {
-  useFetchDemoActorsQuery,
+  useFetchDemoUsersQuery,
   useFetchEvaluationContextQuery,
   useResetDemoDataMutation,
   useReloadStartupInvestmentDefinitionsMutation,

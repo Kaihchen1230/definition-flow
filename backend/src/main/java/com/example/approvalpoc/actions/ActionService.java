@@ -59,24 +59,10 @@ public class ActionService {
     }
 
     @Transactional
-    public ActionResult saveRequestData(UUID requestCaseId, String actorId, JsonNode requestData) {
-        RuntimeBundle bundle = contextService.bundle(requestCaseId, actorId, "save");
+    public ActionResult patchRequestData(UUID requestCaseId, String userId, RequestDataPatch patch) {
+        RuntimeBundle bundle = contextService.bundle(requestCaseId, userId, "save");
         if (!canSave(bundle)) {
-            return new ActionResult(false, "Save is not allowed for this actor or workflow state.", Map.of());
-        }
-        RequestCaseEntity requestCase = bundle.requestCase();
-        requestCase.setRequestData(writeJson(requestData));
-        requestCase.touch();
-        requestCaseRepository.save(requestCase);
-        auditService.record(requestCaseId, "SAVE_REQUEST_DATA", actorId, requestCase.getWorkflowState(), requestCase.getWorkflowState(), definitionService.activeVersions(requestCase.getRequestType()), Map.of());
-        return new ActionResult(true, "Saved", Map.of("requestCaseId", requestCaseId.toString()));
-    }
-
-    @Transactional
-    public ActionResult patchRequestData(UUID requestCaseId, String actorId, RequestDataPatch patch) {
-        RuntimeBundle bundle = contextService.bundle(requestCaseId, actorId, "save");
-        if (!canSave(bundle)) {
-            return new ActionResult(false, "Save is not allowed for this actor or workflow state.", Map.of());
+            return new ActionResult(false, "Save is not allowed for this user or workflow state.", Map.of());
         }
         RequestCaseEntity requestCase = bundle.requestCase();
         ObjectNode requestData = readRequestDataObject(requestCase);
@@ -87,7 +73,7 @@ public class ActionService {
         requestCase.setRequestData(writeJson(requestData));
         requestCase.touch();
         requestCaseRepository.save(requestCase);
-        auditService.record(requestCaseId, "PATCH_REQUEST_DATA", actorId, requestCase.getWorkflowState(), requestCase.getWorkflowState(), definitionService.activeVersions(requestCase.getRequestType()), Map.of("paths", updates.stream().map(RequestDataPatch.PathUpdate::path).toList()));
+        auditService.record(requestCaseId, "PATCH_REQUEST_DATA", userId, requestCase.getWorkflowState(), requestCase.getWorkflowState(), definitionService.activeVersions(requestCase.getRequestType()), Map.of("paths", updates.stream().map(RequestDataPatch.PathUpdate::path).toList()));
         return new ActionResult(true, "Saved", Map.of("requestCaseId", requestCaseId.toString(), "paths", updates.stream().map(RequestDataPatch.PathUpdate::path).toList()));
     }
 
@@ -100,8 +86,8 @@ public class ActionService {
     }
 
     @Transactional
-    public ActionResult execute(UUID requestCaseId, String actorId, String actionId, JsonNode payload) {
-        RuntimeBundle bundle = contextService.bundle(requestCaseId, actorId, scopeFor(actionId));
+    public ActionResult execute(UUID requestCaseId, String userId, String actionId, JsonNode payload) {
+        RuntimeBundle bundle = contextService.bundle(requestCaseId, userId, scopeFor(actionId));
         if (actionId.equals("calculateApprovalRoute")) {
             return calculateApprovalRoute(bundle);
         }
@@ -118,8 +104,8 @@ public class ActionService {
             return new ActionResult(false, "Calculate approval route is not allowed.", Map.of());
         }
         JsonNode calculationDefinition = definitionService.activeDefinition(bundle.requestCase().getRequestType(), DefinitionModuleType.CALCULATIONS);
-        calculationService.calculateApprovalRoute(bundle.requestCase().getId(), bundle.actor().getId(), calculationDefinition, bundle.context());
-        auditService.record(bundle.requestCase().getId(), "CALCULATE_APPROVAL_ROUTE", bundle.actor().getId(), bundle.requestCase().getWorkflowState(), bundle.requestCase().getWorkflowState(), definitionService.activeVersions(bundle.requestCase().getRequestType()), Map.of());
+        calculationService.calculateApprovalRoute(bundle.requestCase().getId(), bundle.user().getId(), calculationDefinition, bundle.context());
+        auditService.record(bundle.requestCase().getId(), "CALCULATE_APPROVAL_ROUTE", bundle.user().getId(), bundle.requestCase().getWorkflowState(), bundle.requestCase().getWorkflowState(), definitionService.activeVersions(bundle.requestCase().getRequestType()), Map.of());
         return new ActionResult(true, "Approval route calculated.", Map.of());
     }
 
@@ -149,7 +135,7 @@ public class ActionService {
         bundle.requestCase().setWorkflowState(to);
         bundle.requestCase().touch();
         requestCaseRepository.save(bundle.requestCase());
-        auditService.record(bundle.requestCase().getId(), actionId, bundle.actor().getId(), from, to, definitionService.activeVersions(bundle.requestCase().getRequestType()), payload == null ? Map.of() : payload);
+        auditService.record(bundle.requestCase().getId(), actionId, bundle.user().getId(), from, to, definitionService.activeVersions(bundle.requestCase().getRequestType()), payload == null ? Map.of() : payload);
         return new ActionResult(true, "Workflow moved to " + to + ".", Map.of("from", from, "to", to));
     }
 

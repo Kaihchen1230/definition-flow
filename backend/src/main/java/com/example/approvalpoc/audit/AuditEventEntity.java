@@ -16,7 +16,7 @@ public class AuditEventEntity {
     private Long id;
     private UUID requestCaseId;
     private String eventType;
-    private String actorId;
+    private String userId;
     private String fromWorkflowState;
     private String toWorkflowState;
     private String definitionVersions;
@@ -26,10 +26,10 @@ public class AuditEventEntity {
     protected AuditEventEntity() {
     }
 
-    public AuditEventEntity(UUID requestCaseId, String eventType, String actorId, String fromWorkflowState, String toWorkflowState, String definitionVersions, String detailsJson, Instant createdAt) {
+    public AuditEventEntity(UUID requestCaseId, String eventType, String userId, String fromWorkflowState, String toWorkflowState, String definitionVersions, String detailsJson, Instant createdAt) {
         this.requestCaseId = requestCaseId;
         this.eventType = eventType;
-        this.actorId = actorId;
+        this.userId = userId;
         this.fromWorkflowState = fromWorkflowState;
         this.toWorkflowState = toWorkflowState;
         this.definitionVersions = definitionVersions;
