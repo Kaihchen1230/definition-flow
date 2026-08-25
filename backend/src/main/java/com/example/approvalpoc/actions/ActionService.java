@@ -15,6 +15,7 @@ import com.example.approvalpoc.validation.ValidationService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.NullNode;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -69,6 +70,25 @@ public class ActionService {
         requestCaseRepository.save(requestCase);
         auditService.record(requestCaseId, "SAVE_REQUEST_DATA", actorId, requestCase.getWorkflowState(), requestCase.getWorkflowState(), definitionService.activeVersions(requestCase.getRequestType()), Map.of());
         return new ActionResult(true, "Saved", Map.of("requestCaseId", requestCaseId.toString()));
+    }
+
+    @Transactional
+    public ActionResult patchRequestData(UUID requestCaseId, String actorId, RequestDataPatch patch) {
+        RuntimeBundle bundle = contextService.bundle(requestCaseId, actorId, "save");
+        if (!canSave(bundle)) {
+            return new ActionResult(false, "Save is not allowed for this actor or workflow state.", Map.of());
+        }
+        RequestCaseEntity requestCase = bundle.requestCase();
+        ObjectNode requestData = readRequestDataObject(requestCase);
+        List<RequestDataPatch.PathUpdate> updates = patch == null || patch.updates() == null ? List.of() : patch.updates();
+        for (RequestDataPatch.PathUpdate update : updates) {
+            applyPathUpdate(requestData, update);
+        }
+        requestCase.setRequestData(writeJson(requestData));
+        requestCase.touch();
+        requestCaseRepository.save(requestCase);
+        auditService.record(requestCaseId, "PATCH_REQUEST_DATA", actorId, requestCase.getWorkflowState(), requestCase.getWorkflowState(), definitionService.activeVersions(requestCase.getRequestType()), Map.of("paths", updates.stream().map(RequestDataPatch.PathUpdate::path).toList()));
+        return new ActionResult(true, "Saved", Map.of("requestCaseId", requestCaseId.toString(), "paths", updates.stream().map(RequestDataPatch.PathUpdate::path).toList()));
     }
 
     private boolean canSave(RuntimeBundle bundle) {
@@ -157,6 +177,36 @@ public class ActionService {
             return "calculateApprovalRoute";
         }
         return "render";
+    }
+
+    private ObjectNode readRequestDataObject(RequestCaseEntity requestCase) {
+        try {
+            JsonNode requestData = objectMapper.readTree(requestCase.getRequestData());
+            if (!requestData.isObject()) {
+                throw new IllegalStateException("Request data must be a JSON object");
+            }
+            return requestData.deepCopy();
+        } catch (JsonProcessingException e) {
+            throw new IllegalStateException("Could not read request data JSON", e);
+        }
+    }
+
+    private void applyPathUpdate(ObjectNode requestData, RequestDataPatch.PathUpdate update) {
+        if (update == null || update.path() == null || update.path().isBlank()) {
+            throw new IllegalArgumentException("Patch update path is required");
+        }
+        String[] parts = update.path().split("\\.");
+        ObjectNode current = requestData;
+        for (int index = 0; index < parts.length - 1; index++) {
+            String part = parts[index];
+            JsonNode next = current.path(part);
+            if (!next.isObject()) {
+                next = objectMapper.createObjectNode();
+                current.set(part, next);
+            }
+            current = (ObjectNode) next;
+        }
+        current.set(parts[parts.length - 1], update.value() == null ? NullNode.getInstance() : update.value());
     }
 
     private String writeJson(Object value) {

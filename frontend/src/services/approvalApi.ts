@@ -1,5 +1,5 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { Actor, EvaluatedUi } from "../types/api";
+import type { Actor, EvaluatedUi, RequestDataUpdate } from "../types/api";
 
 export const demoRequestId = "11111111-1111-1111-1111-111111111111";
 const apiBaseUrl = typeof window === "undefined" ? "/" : `${window.location.origin}/`;
@@ -31,11 +31,11 @@ export const approvalApi = createApi({
       }),
       invalidatesTags: ["EvaluatedUi"],
     }),
-    saveRequestData: builder.mutation<unknown, { requestCaseId: string; actorId: string; requestData: Record<string, any> }>({
-      query: ({ requestCaseId, actorId, requestData }) => ({
+    patchRequestData: builder.mutation<unknown, { requestCaseId: string; actorId: string; updates: RequestDataUpdate[] }>({
+      query: ({ requestCaseId, actorId, updates }) => ({
         url: `api/request-cases/${requestCaseId}/request-data?actorId=${actorId}`,
-        method: "PUT",
-        body: requestData,
+        method: "PATCH",
+        body: { updates },
       }),
       invalidatesTags: ["EvaluatedUi"],
     }),
@@ -55,6 +55,6 @@ export const {
   useFetchEvaluatedUiQuery,
   useResetDemoDataMutation,
   useReloadStartupInvestmentDefinitionsMutation,
-  useSaveRequestDataMutation,
+  usePatchRequestDataMutation,
   useExecuteRequestActionMutation,
 } = approvalApi;

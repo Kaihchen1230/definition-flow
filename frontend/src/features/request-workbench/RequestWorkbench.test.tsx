@@ -1,5 +1,5 @@
 import { Provider } from "react-redux";
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createStore } from "../../store/store";
@@ -14,6 +14,7 @@ const evaluatedUi: EvaluatedUi = {
   requestData: {
     company: { name: "Acme Robotics" },
     investment: { amount: 6500000 },
+    internal: { note: "Hidden from this actor" },
   },
   derived: { investmentVariant: "HIGH_RISK" },
   calculations: { approvalRoute: { exists: false, stale: true } },
@@ -27,7 +28,28 @@ const evaluatedUi: EvaluatedUi = {
       visible: true,
       enabled: true,
       disabled: false,
-      children: [],
+      children: [
+        {
+          id: "companyName",
+          type: "field",
+          component: "textInput",
+          label: "Company name",
+          dataPath: "company.name",
+          visible: true,
+          enabled: true,
+          disabled: false,
+        },
+        {
+          id: "internalNote",
+          type: "field",
+          component: "textInput",
+          label: "Internal note",
+          dataPath: "internal.note",
+          visible: false,
+          enabled: true,
+          disabled: false,
+        },
+      ],
     },
   ],
   workflowActions: [
@@ -70,6 +92,7 @@ const renderWorkbench = () => {
 
 describe("RequestWorkbench validation mode", () => {
   afterEach(() => {
+    cleanup();
     vi.unstubAllGlobals();
   });
 
@@ -87,5 +110,30 @@ describe("RequestWorkbench validation mode", () => {
     await user.click(screen.getByRole("button", { name: "Submit for investment approval" }));
 
     expect(await screen.findByText(/Approval route must be calculated before submit\./)).toBeTruthy();
+  });
+
+  it("saves only data paths from the selected page", async () => {
+    const user = userEvent.setup();
+    const requestBodies: any[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input, init) => {
+        const request = input instanceof Request ? input : undefined;
+        const method = request?.method ?? init?.method;
+        if (method === "PATCH") {
+          requestBodies.push(request ? await request.clone().json() : JSON.parse(init?.body as string));
+        }
+        return new Response(JSON.stringify({ success: true, message: "Saved", details: {} }));
+      })
+    );
+
+    renderWorkbench();
+
+    await user.click(screen.getByRole("button", { name: "Save page" }));
+
+    await waitFor(() => expect(requestBodies).toHaveLength(1));
+    expect(requestBodies[0]).toEqual({
+      updates: [{ path: "company.name", value: "Acme Robotics" }],
+    });
   });
 });

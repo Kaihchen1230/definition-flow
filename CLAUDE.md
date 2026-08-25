@@ -25,6 +25,7 @@ Use this guide when making changes in this repository so the POC stays consisten
 - Put generic helpers in `frontend/src/utils/`.
 - Prefer named exports for local modules.
 - Keep components focused on rendering and interaction; avoid hiding API calls or business rules inside low-level field components.
+- Save request edits with page-scoped data patches from the current page's `dataPath` values; do not send the full request data object from the frontend unless a feature explicitly requires whole-request replacement.
 - Do not reintroduce large multi-purpose files like the original all-in-one `main.tsx`.
 - Do not add React Query for new data fetching; use the existing RTK Query service.
 - Show frontend validation summaries only after validation mode is enabled in the current session.
@@ -46,6 +47,7 @@ Use this guide when making changes in this repository so the POC stays consisten
 
 - Treat the backend as authoritative for mutations.
 - Re-check permissions in mutation endpoints even when the frontend hides or disables an action.
+- Merge page-scoped request data patches into the stored request JSON on the backend; preserve fields that were not included in the patch.
 - Keep workflow transitions, validation, calculation freshness, persistence, and audit on the backend.
 - Keep frontend enablement/visibility as UX only; never rely on it as enforcement.
 - Prefer small services with clear module ownership over shared catch-all utility classes.
