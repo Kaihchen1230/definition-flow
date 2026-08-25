@@ -4,11 +4,12 @@ This repository is a proof of concept for turning an approval workflow applicati
 
 The POC uses a startup investment approval scenario to demonstrate:
 
-- modular YAML definitions for data schema, UI, rules, derived facts, calculations, and workflow
+- modular backend YAML definitions for data schema, rules, derived facts, calculations, and workflow
+- frontend-owned typed UI layout config
 - a Java Spring Boot backend as a modular monolith
 - Postgres as the target persistence mode, with H2 as a convenience fallback
 - a React/Vite frontend using Redux Toolkit and RTK Query
-- a React renderer consuming a framework-neutral evaluated UI contract from the backend
+- a React renderer owning static UI layout while consuming backend-evaluated rule results
 - backend-authoritative rules, validation, actions, workflow transitions, calculation stale tracking, and audit
 - page-scoped request data saves that patch only the current page's data paths
 
@@ -17,11 +18,13 @@ The POC uses a startup investment approval scenario to demonstrate:
 ```text
 backend/                         Spring Boot modular monolith
 frontend/                        React/Vite renderer with Redux Toolkit and RTK Query
-definitions/startup-investment/  Developer-maintained YAML definitions
+definitions/startup-investment/  Backend-owned YAML definitions
 docs/                            Proposal and rule DSL spec
 scripts/                         Local helper scripts
 docker-compose.yml               Optional Postgres runtime
 ```
+
+The backend keeps request-case API endpoints under `requestcase/api` and builds the trusted request evaluation context under `requestcase/evaluation`; frontend UI layout evaluation stays in `frontend/src/config` and `frontend/src/utils`.
 
 ## Frontend Shape
 
@@ -31,7 +34,7 @@ frontend/src/services/                    RTK Query API service
 frontend/src/store/                       Redux store setup and typed hooks
 frontend/src/features/request-workbench/  Request workbench panels and local UI state slice
 frontend/src/features/request-renderer/   Dynamic field, collection, and action renderers
-frontend/src/config/                      Static frontend config such as enum options
+frontend/src/config/                      Static frontend config, enum options, and typed UI layout
 frontend/src/types/                       Shared API response types
 frontend/src/utils/                       Generic helpers
 ```
@@ -103,10 +106,10 @@ The POC currently includes:
 4. Derived fact evaluation.
 5. Approval route calculation with dependency-hash stale tracking.
 6. Structured validation buckets for render, submit, and approve.
-7. Evaluated UI contract endpoint.
+7. Backend evaluation context endpoint with trusted rule results, validation, workflow actions, and request data.
 8. Page-scoped save patching plus calculate, submit, approve, decline, and withdraw action endpoints.
 9. Redux Toolkit/RTK Query frontend state and backend API integration.
-10. React renderer with page navigation, page-scoped saves, editable fields/tables/lists, validation summary, workflow actions, and rule trace panel.
+10. Frontend-owned UI layout with page navigation, page-scoped saves, editable fields/tables/lists, validation summary, workflow actions, and rule trace panel.
 11. Baseline backend API integration tests and frontend UI behavior tests.
 
 ## Demo Flow

@@ -35,7 +35,6 @@ public class DefinitionLoaderService {
 
         Map<DefinitionModuleType, String> files = Map.of(
                 DefinitionModuleType.DATA_SCHEMA, "data-schema.yaml",
-                DefinitionModuleType.UI, "ui.yaml",
                 DefinitionModuleType.RULES, "rules.yaml",
                 DefinitionModuleType.DERIVED_FACTS, "derived-facts.yaml",
                 DefinitionModuleType.CALCULATIONS, "calculations.yaml",
@@ -69,6 +68,8 @@ public class DefinitionLoaderService {
             ));
             loaded.put(entry.getKey(), nextVersion);
         }
+        repository.findByRequestTypeAndModuleType(requestType, DefinitionModuleType.UI)
+                .forEach(module -> module.setActive(false));
 
         return new DefinitionReloadResult(requestType, loaded);
     }

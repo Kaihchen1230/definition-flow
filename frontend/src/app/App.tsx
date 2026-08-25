@@ -2,24 +2,35 @@ import { useEffect, useMemo } from "react";
 import {
   demoRequestId,
   useFetchDemoActorsQuery,
-  useFetchEvaluatedUiQuery,
+  useFetchEvaluationContextQuery,
   useReloadStartupInvestmentDefinitionsMutation,
   useResetDemoDataMutation,
 } from "../services/approvalApi";
+import { startupInvestmentUiDefinition } from "../config/uiDefinition";
 import { RequestWorkbench } from "../features/request-workbench/RequestWorkbench";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { setActorId, setSelectedPageId } from "../features/request-workbench/requestWorkbenchSlice";
+import { evaluateUiDefinition } from "../utils/evaluateUiDefinition";
 
 export const App = () => {
   const dispatch = useAppDispatch();
   const actorId = useAppSelector((state) => state.requestWorkbench.actorId);
   const selectedPageId = useAppSelector((state) => state.requestWorkbench.selectedPageId);
   const actors = useFetchDemoActorsQuery();
-  const evaluated = useFetchEvaluatedUiQuery({ requestCaseId: demoRequestId, actorId });
+  const evaluated = useFetchEvaluationContextQuery({ requestCaseId: demoRequestId, actorId });
   const [resetDemo] = useResetDemoDataMutation();
   const [reloadDefinitions] = useReloadStartupInvestmentDefinitionsMutation();
 
-  const visiblePages = useMemo(() => evaluated.data?.pages.filter((page) => page.visible) ?? [], [evaluated.data]);
+  const evaluatedUi = useMemo(() => {
+    if (!evaluated.data) {
+      return undefined;
+    }
+    return {
+      ...evaluated.data,
+      pages: evaluateUiDefinition(startupInvestmentUiDefinition.pages, evaluated.data),
+    };
+  }, [evaluated.data]);
+  const visiblePages = useMemo(() => evaluatedUi?.pages.filter((page) => page.visible) ?? [], [evaluatedUi]);
 
   useEffect(() => {
     if (!selectedPageId && visiblePages.length > 0) {
@@ -39,7 +50,7 @@ export const App = () => {
           <div>
             <h1 className="text-2xl font-semibold">Startup Investment Approval</h1>
             <p className="mt-1 text-sm text-slate-600">
-              Definition-driven approval request POC. Backend evaluates rules; React renders the evaluated contract.
+              Definition-driven approval request POC. Backend evaluates rules; React owns the UI layout.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -59,12 +70,12 @@ export const App = () => {
           </div>
         </header>
 
-        {evaluated.isLoading && <div className="panel">Loading evaluated UI...</div>}
+        {evaluated.isLoading && <div className="panel">Loading request context...</div>}
         {evaluated.error && <div className="panel border-red-300 text-red-700">Backend not ready. Start backend, load definitions, then reset demo data.</div>}
 
-        {evaluated.data && (
+        {evaluatedUi && (
           <RequestWorkbench
-            evaluated={evaluated.data}
+            evaluated={evaluatedUi}
             selectedPage={selectedPage}
             selectedPageId={selectedPageId}
             setSelectedPageId={(id) => dispatch(setSelectedPageId(id))}
