@@ -11,10 +11,10 @@ type StatProps = {
 
 export const StatusBar = ({ evaluated }: StatusBarProps) => {
   return (
-    <div className="panel grid grid-cols-4 gap-3 text-sm">
-      <Stat label="Workflow" value={evaluated.workflowState} />
-      <Stat label="Actor" value={`${evaluated.actor.displayName}`} />
-      <Stat label="Variant" value={String(evaluated.derived.investmentVariant ?? "N/A")} />
+    <div className="status-strip">
+      <Stat label="Workflow" value={formatStatusValue(evaluated.workflowState)} />
+      <Stat label="User" value={`${evaluated.user.displayName}`} />
+      <Stat label="Variant" value={formatStatusValue(String(evaluated.derived.investmentVariant ?? "N/A"))} />
       <Stat label="Approval Route" value={routeStatus(evaluated.calculations.approvalRoute)} />
     </div>
   );
@@ -22,9 +22,9 @@ export const StatusBar = ({ evaluated }: StatusBarProps) => {
 
 const Stat = ({ label, value }: StatProps) => {
   return (
-    <div>
-      <div className="text-xs font-semibold uppercase text-slate-500">{label}</div>
-      <div className="mt-1 truncate font-medium">{value}</div>
+    <div className="status-cell">
+      <div className="status-label">{label}</div>
+      <div className="status-value">{value}</div>
     </div>
   );
 };
@@ -32,5 +32,16 @@ const Stat = ({ label, value }: StatProps) => {
 const routeStatus = (route: any) => {
   if (!route?.exists) return "Not calculated";
   if (route.stale) return "Stale";
-  return route.result?.requiredLevels?.join(", ") ?? "Fresh";
+  return route.result?.requiredLevels?.map(formatStatusValue).join(", ") ?? "Fresh";
+};
+
+const formatStatusValue = (value: string) => {
+  if (value === "N/A") {
+    return value;
+  }
+  return value
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 };

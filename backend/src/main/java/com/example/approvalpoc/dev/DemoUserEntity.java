@@ -5,8 +5,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "demo_actor")
-public class DemoActorEntity {
+@Table(name = "demo_user")
+public class DemoUserEntity {
     @Id
     private String id;
     private String displayName;
@@ -14,10 +14,10 @@ public class DemoActorEntity {
     private String entitlements;
     private String groupsJson;
 
-    protected DemoActorEntity() {
+    protected DemoUserEntity() {
     }
 
-    public DemoActorEntity(String id, String displayName, String role, String entitlements, String groupsJson) {
+    public DemoUserEntity(String id, String displayName, String role, String entitlements, String groupsJson) {
         this.id = id;
         this.displayName = displayName;
         this.role = role;

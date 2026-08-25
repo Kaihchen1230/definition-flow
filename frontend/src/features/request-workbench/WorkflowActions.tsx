@@ -12,7 +12,8 @@ export const WorkflowActions = ({ actions, runAction, pending }: WorkflowActions
     return null;
   }
   return (
-    <div className="panel flex flex-wrap gap-2">
+    <div className="action-bar">
+      <div className="action-bar-title">Workflow actions</div>
       {available.map((action) => (
         <button
           className={action.id.includes("decline") || action.id.includes("withdraw") ? "button secondary" : "button"}

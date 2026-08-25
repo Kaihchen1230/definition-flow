@@ -43,7 +43,7 @@ frontend/src/utils/                       Generic helpers
 
 DSL stands for Domain-Specific Language. It is a small language designed for one problem area instead of a general-purpose programming language like Java or TypeScript.
 
-In this POC, the rule DSL is the YAML format used to describe approval-platform decisions in a predictable, non-code way. For example, `rules.yaml` can say that an actor may approve a request only when the workflow is in the right state and the actor has the right entitlement.
+In this POC, the rule DSL is the YAML format used to describe approval-platform decisions in a predictable, non-code way. For example, `rules.yaml` can say that a user may approve a request only when the workflow is in the right state and the user has the right entitlement.
 
 That lets the platform evaluate rules consistently for UI behavior, validation, workflow actions, calculations, and audit without hardcoding every approval scenario into application code.
 
@@ -79,6 +79,8 @@ npm install
 npm run dev
 ```
 
+The evaluation trace rail is controlled in `frontend/src/config/appConstants.ts`.
+
 ## Verification
 
 Run backend tests:
@@ -101,7 +103,7 @@ npm run build
 The POC currently includes:
 
 1. Versioned YAML definition loading through the backend.
-2. Demo actors and a seeded startup investment request case.
+2. Demo users and a seeded startup investment request case.
 3. Predicate rule evaluation with rule references and trace output.
 4. Derived fact evaluation.
 5. Approval route calculation with dependency-hash stale tracking.

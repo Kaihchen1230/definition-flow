@@ -68,9 +68,6 @@ public class DefinitionLoaderService {
             ));
             loaded.put(entry.getKey(), nextVersion);
         }
-        repository.findByRequestTypeAndModuleType(requestType, DefinitionModuleType.UI)
-                .forEach(module -> module.setActive(false));
-
         return new DefinitionReloadResult(requestType, loaded);
     }
 

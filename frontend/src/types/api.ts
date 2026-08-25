@@ -1,4 +1,4 @@
-export type Actor = {
+export type User = {
   id: string;
   displayName: string;
   role: string;
@@ -60,7 +60,7 @@ export type EvaluationContext = {
   requestCaseId: string;
   requestType: string;
   workflowState: string;
-  actor: { userId: string; displayName: string; role: string; entitlements: string[] };
+  user: { userId: string; displayName: string; role: string; entitlements: string[] };
   requestData: Record<string, any>;
   derived: Record<string, unknown>;
   calculations: Record<string, any>;

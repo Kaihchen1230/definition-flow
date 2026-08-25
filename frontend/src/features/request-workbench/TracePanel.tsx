@@ -9,10 +9,17 @@ type TraceNodeProps = {
 };
 
 export const TracePanel = ({ pages }: TracePanelProps) => {
+  const hiddenCount = countHiddenNodes(pages);
   return (
-    <div className="panel max-h-[calc(100vh-130px)] overflow-auto">
-      <h2 className="mb-3 text-base font-semibold">Rule Trace</h2>
-      <div className="space-y-3">
+    <div className="panel trace-panel">
+      <div className="trace-header">
+        <div>
+          <p className="text-xs font-medium text-[var(--text-muted)]">Evaluation trace</p>
+          <h2>Rule Decisions</h2>
+        </div>
+        <span>{hiddenCount} hidden</span>
+      </div>
+      <div className="trace-stack">
         {pages.map((page) => (
           <TraceNode node={page} key={page.id} />
         ))}
@@ -23,12 +30,20 @@ export const TracePanel = ({ pages }: TracePanelProps) => {
 
 const TraceNode = ({ node }: TraceNodeProps) => {
   return (
-    <details className="rounded border border-slate-200 p-2 text-xs" open={node.visible === false}>
-      <summary className="cursor-pointer font-medium">
-        {node.label ?? node.id} <span className={node.visible ? "text-emerald-700" : "text-red-700"}>{node.visible ? "visible" : "hidden"}</span>
+    <details className="trace-node" open={node.visible === false}>
+      <summary>
+        <span className="truncate">{node.label ?? node.id}</span>
+        <span className={node.visible ? "trace-state visible" : "trace-state hidden"}>{node.visible ? "visible" : "hidden"}</span>
       </summary>
-      <pre className="mt-2 overflow-auto rounded bg-slate-950 p-2 text-slate-100">{JSON.stringify(node.debug, null, 2)}</pre>
+      <pre>{JSON.stringify(node.debug, null, 2)}</pre>
       {(node.children ?? []).map((child) => <TraceNode node={child} key={child.id} />)}
     </details>
   );
+};
+
+const countHiddenNodes = (nodes: UiNode[]): number => {
+  return nodes.reduce((count, node) => {
+    const children = node.children ? countHiddenNodes(node.children) : 0;
+    return count + (node.visible ? 0 : 1) + children;
+  }, 0);
 };

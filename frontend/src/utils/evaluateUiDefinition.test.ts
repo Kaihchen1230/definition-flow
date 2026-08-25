@@ -7,7 +7,7 @@ const context: EvaluationContext = {
   requestCaseId: "11111111-1111-1111-1111-111111111111",
   requestType: "startupInvestment",
   workflowState: "INVESTMENT_REVIEW",
-  actor: { userId: "analyst", displayName: "Avery Analyst", role: "InvestmentAnalyst", entitlements: ["EDIT_INVESTMENT_REQUEST"] },
+  user: { userId: "analyst", displayName: "Avery Analyst", role: "InvestmentAnalyst", entitlements: ["EDIT_INVESTMENT_REQUEST"] },
   requestData: {
     company: { name: "Acme Robotics" },
   },

@@ -27,7 +27,7 @@ Rules evaluate against a runtime context assembled by the backend:
 
 ```json
 {
-  "actor": {},
+  "user": {},
   "workflow": {},
   "request": {},
   "requestData": {},
@@ -42,7 +42,7 @@ Rule paths are absolute within this context:
 
 ```yaml
 path: workflow.state
-path: actor.entitlements
+path: user.entitlements
 path: requestData.investment.amount
 path: derived.investmentVariant
 path: calculations.approvalRoute.stale
@@ -59,7 +59,7 @@ and:
   - path: workflow.state
     op: in
     value: [DRAFT, INVESTMENT_REVIEW]
-  - path: actor.entitlements
+  - path: user.entitlements
     op: contains
     value: EDIT_INVESTMENT_REQUEST
 ```

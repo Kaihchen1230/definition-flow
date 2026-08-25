@@ -6,7 +6,7 @@ capabilities:
         - path: workflow.state
           op: in
           value: [DRAFT, INVESTMENT_REVIEW]
-        - path: actor.entitlements
+        - path: user.entitlements
           op: contains
           value: EDIT_INVESTMENT_REQUEST
 
@@ -17,7 +17,7 @@ capabilities:
         - path: workflow.state
           op: eq
           value: PENDING_INVESTMENT_APPROVAL
-        - path: actor.entitlements
+        - path: user.entitlements
           op: contains
           value: APPROVE_INVESTMENT_REVIEW
 
@@ -28,7 +28,7 @@ capabilities:
         - path: workflow.state
           op: eq
           value: RISK_REVIEW
-        - path: actor.entitlements
+        - path: user.entitlements
           op: contains
           value: EDIT_RISK_REVIEW
 
@@ -39,7 +39,7 @@ capabilities:
         - path: workflow.state
           op: eq
           value: PENDING_RISK_APPROVAL
-        - path: actor.entitlements
+        - path: user.entitlements
           op: contains
           value: APPROVE_FINAL_REQUEST
 
@@ -47,7 +47,7 @@ capabilities:
     description: Entitled users can withdraw non-terminal cases.
     rule:
       and:
-        - path: actor.entitlements
+        - path: user.entitlements
           op: contains
           value: WITHDRAW_REQUEST
         - path: workflow.state
@@ -58,7 +58,7 @@ capabilities:
     description: Approval users can decline non-terminal cases during approval review.
     rule:
       and:
-        - path: actor.entitlements
+        - path: user.entitlements
           op: contains
           value: DECLINE_REQUEST
         - path: workflow.state
@@ -80,7 +80,7 @@ uiRules:
         - path: workflow.state
           op: in
           value: [PENDING_RISK_APPROVAL, APPROVED, DECLINED, WITHDRAWN]
-        - path: actor.role
+        - path: user.role
           op: eq
           value: Support
 

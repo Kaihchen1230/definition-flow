@@ -17,10 +17,11 @@ type RequestWorkbenchProps = {
   selectedPage?: UiNode;
   selectedPageId: string | null;
   setSelectedPageId: (id: string) => void;
-  actorId: string;
+  userId: string;
+  showEvaluationTrace?: boolean;
 };
 
-export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setSelectedPageId, actorId }: RequestWorkbenchProps) => {
+export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setSelectedPageId, userId, showEvaluationTrace = true }: RequestWorkbenchProps) => {
   const dispatch = useAppDispatch();
   const draft = useAppSelector((state) => state.requestWorkbench.draft);
   const validationMode = useAppSelector((state) => state.requestWorkbench.validationMode);
@@ -37,7 +38,7 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
   const savePage = () => {
     patchRequest({
       requestCaseId: evaluated.requestCaseId,
-      actorId,
+      userId,
       updates: pageDataPaths.map((path) => ({ path, value: getPath(draft, path) })),
     });
   };
@@ -45,13 +46,13 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
     if (actionId.startsWith("workflow.submit")) {
       dispatch(enableValidationMode());
     }
-    runRequestAction({ requestCaseId: evaluated.requestCaseId, actorId, actionId });
+    runRequestAction({ requestCaseId: evaluated.requestCaseId, userId, actionId });
   };
 
   return (
-    <div className="grid grid-cols-[230px_minmax(0,1fr)_360px] gap-4">
-      <aside className="panel self-start p-2">
-        <div className="px-2 pb-2 text-xs font-semibold uppercase text-slate-500">Pages</div>
+    <div className={`workbench-grid ${showEvaluationTrace ? "" : "without-trace"}`}>
+      <aside className="panel nav-panel">
+        <div className="nav-label">Request pages</div>
         {visiblePages.map((page) => (
           <button
             key={page.id}
@@ -63,31 +64,36 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
         ))}
       </aside>
 
-      <section className="space-y-4">
+      <section className="min-w-0 space-y-3">
         <StatusBar evaluated={evaluated} />
         {validationMode && <ValidationSummary evaluated={evaluated} />}
         <WorkflowActions actions={evaluated.workflowActions} runAction={runAction} pending={action.isLoading} />
         {action.data ? <ActionMessage result={action.data as { success: boolean; message: string }} /> : null}
         {selectedPage && (
-          <div className="panel">
-            <div className="mb-4 flex items-center justify-between border-b border-slate-200 pb-3">
-              <h2 className="text-lg font-semibold">{selectedPage.label}</h2>
+          <div className="panel content-panel">
+            <div className="content-panel-header">
+              <div>
+                <p className="text-xs font-medium text-[var(--text-muted)]">Current page</p>
+                <h2 className="mt-1 text-lg font-semibold tracking-[-0.01em]">{selectedPage.label}</h2>
+              </div>
               <button className="button" onClick={savePage} disabled={save.isLoading || !canSavePage}>
                 Save page
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="content-stack">
               {(selectedPage.children ?? []).filter((node) => node.visible).map((node) => (
-                <RenderNode key={node.id} node={node} data={draft} setData={(value) => dispatch(setDraft(typeof value === "function" ? value(draft) : value))} actorRole={evaluated.actor.role} runAction={runAction} />
+                <RenderNode key={node.id} node={node} data={draft} setData={(value) => dispatch(setDraft(typeof value === "function" ? value(draft) : value))} userRole={evaluated.user.role} runAction={runAction} />
               ))}
             </div>
           </div>
         )}
       </section>
 
-      <aside className="space-y-4">
-        <TracePanel pages={evaluated.pages} />
-      </aside>
+      {showEvaluationTrace && (
+        <aside className="min-w-0">
+          <TracePanel pages={evaluated.pages} />
+        </aside>
+      )}
     </div>
   );
 };

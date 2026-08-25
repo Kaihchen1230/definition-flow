@@ -10,22 +10,22 @@ type RenderNodeProps = {
   node: UiNode;
   data: Record<string, any>;
   setData: Dispatch<SetStateAction<Record<string, any>>>;
-  actorRole: string;
+  userRole: string;
   runAction: (id: string) => void;
 };
 
-export const RenderNode = ({ node, data, setData, actorRole, runAction }: RenderNodeProps) => {
+export const RenderNode = ({ node, data, setData, userRole, runAction }: RenderNodeProps) => {
   if (node.type === "collection" && node.dataPath === "founders") {
     return <FoundersTable node={node} data={data} setData={setData} />;
   }
   if (node.type === "collection" && node.dataPath === "exceptions") {
-    return <ExceptionList node={node} data={data} setData={setData} actorRole={actorRole} />;
+    return <ExceptionList node={node} data={data} setData={setData} userRole={userRole} />;
   }
   if (node.type === "calculation") {
     return <ActionPanel node={node} runAction={runAction} />;
   }
   if (node.type === "summary") {
-    return <pre className="overflow-auto rounded bg-slate-950 p-4 text-xs text-slate-50">{JSON.stringify(data, null, 2)}</pre>;
+    return <pre className="code-surface">{JSON.stringify(data, null, 2)}</pre>;
   }
   if (node.type === "action") {
     return (

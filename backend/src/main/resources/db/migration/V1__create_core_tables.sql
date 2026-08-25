@@ -51,4 +51,3 @@ create table if not exists demo_actor (
     entitlements text not null,
     groups_json text not null
 );
-

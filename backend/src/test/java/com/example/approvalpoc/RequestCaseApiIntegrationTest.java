@@ -1,6 +1,5 @@
 package com.example.approvalpoc;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -17,7 +16,6 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -44,7 +42,7 @@ class RequestCaseApiIntegrationTest {
     @Test
     void submitInvestmentReviewRequiresFreshApprovalRoute() throws Exception {
         mockMvc.perform(post("/api/request-cases/{requestCaseId}/actions/workflow.submitInvestmentReview", DEMO_REQUEST_ID)
-                        .param("actorId", "analyst")
+                        .param("userId", "analyst")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isOk())
@@ -54,26 +52,23 @@ class RequestCaseApiIntegrationTest {
     }
 
     @Test
-    void supportActorCannotSaveRequestData() throws Exception {
-        String evaluationContext = mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluation-context", DEMO_REQUEST_ID)
-                        .param("actorId", "support"))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-        JsonNode requestData = objectMapper.readTree(evaluationContext).path("requestData").deepCopy();
-        ((ObjectNode) requestData.path("company")).put("name", "Support Edit Attempt");
+    void supportUserCannotPatchRequestData() throws Exception {
+        ObjectNode patchBody = objectMapper.createObjectNode();
+        ArrayNode updates = patchBody.putArray("updates");
+        updates.addObject()
+                .put("path", "company.name")
+                .put("value", "Support Edit Attempt");
 
-        mockMvc.perform(put("/api/request-cases/{requestCaseId}/request-data", DEMO_REQUEST_ID)
-                        .param("actorId", "support")
+        mockMvc.perform(patch("/api/request-cases/{requestCaseId}/request-data", DEMO_REQUEST_ID)
+                        .param("userId", "support")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestData)))
+                        .content(objectMapper.writeValueAsString(patchBody)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Save is not allowed for this actor or workflow state."));
+                .andExpect(jsonPath("$.message").value("Save is not allowed for this user or workflow state."));
 
         mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluation-context", DEMO_REQUEST_ID)
-                        .param("actorId", "analyst"))
+                        .param("userId", "analyst"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.requestData.company.name").value("Acme Robotics"));
     }
@@ -81,7 +76,7 @@ class RequestCaseApiIntegrationTest {
     @Test
     void evaluationContextReturnsRuleResultsWithoutBackendOwnedPages() throws Exception {
         mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluation-context", DEMO_REQUEST_ID)
-                        .param("actorId", "analyst"))
+                        .param("userId", "analyst"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.pages").doesNotExist())
                 .andExpect(jsonPath("$.definitionVersions.UI").doesNotExist())
@@ -90,12 +85,10 @@ class RequestCaseApiIntegrationTest {
     }
 
     @Test
-    void legacyEvaluatedUiEndpointStillReturnsEvaluationContext() throws Exception {
+    void legacyEvaluatedUiEndpointIsNotSupported() throws Exception {
         mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluated-ui", DEMO_REQUEST_ID)
-                        .param("actorId", "analyst"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.pages").doesNotExist())
-                .andExpect(jsonPath("$.ruleResults.canEditInvestmentReview.result").value(true));
+                        .param("userId", "analyst"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -107,7 +100,7 @@ class RequestCaseApiIntegrationTest {
                 .put("value", "Patched Robotics");
 
         mockMvc.perform(patch("/api/request-cases/{requestCaseId}/request-data", DEMO_REQUEST_ID)
-                        .param("actorId", "analyst")
+                        .param("userId", "analyst")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(patchBody)))
                 .andExpect(status().isOk())
@@ -115,7 +108,7 @@ class RequestCaseApiIntegrationTest {
                 .andExpect(jsonPath("$.details.paths[0]").value("company.name"));
 
         mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluation-context", DEMO_REQUEST_ID)
-                        .param("actorId", "analyst"))
+                        .param("userId", "analyst"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.requestData.company.name").value("Patched Robotics"))
                 .andExpect(jsonPath("$.requestData.investment.amount").value(6500000));
