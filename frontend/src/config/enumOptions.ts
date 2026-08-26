@@ -9,6 +9,11 @@ export const yesNoNa = (): EnumOption[] => [
   { value: "NA", label: "N/A" },
 ];
 
+const confirmOrReferBack = (): EnumOption[] => [
+  { value: "CONFIRMED", label: "Confirmed" },
+  { value: "REFER_BACK", label: "Refer back" },
+];
+
 export const enumOptions: Record<string, EnumOption[]> = {
   "company.stage": [
     { value: "SEED", label: "Seed" },
@@ -34,6 +39,9 @@ export const enumOptions: Record<string, EnumOption[]> = {
     { value: "DECLINE", label: "Decline" },
     { value: "REFER_BACK", label: "Refer back" },
   ],
+  "risk.pageConfirmations.companyProfile": confirmOrReferBack(),
+  "risk.pageConfirmations.investmentTerms": confirmOrReferBack(),
+  "risk.pageConfirmations.foundersOwnership": confirmOrReferBack(),
   indicators: [
     { value: "HIGH_BURN_RATE", label: "High burn rate" },
     { value: "PENDING_LITIGATION", label: "Pending litigation" },

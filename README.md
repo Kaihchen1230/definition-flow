@@ -104,7 +104,7 @@ npm run build
 The POC currently includes:
 
 1. Versioned YAML definition loading through the backend.
-2. Demo users and a seeded startup investment request case.
+2. Demo users and three seeded startup investment request cases covering standard, high-value/early-stage, and material-exception routing.
 3. Predicate rule evaluation with rule references and trace output.
 4. Derived fact evaluation.
 5. Approval route calculation with dependency-hash stale tracking.
@@ -121,7 +121,21 @@ The POC currently includes:
 2. Run `./scripts/load-definitions.sh startup-investment`.
 3. Run `./scripts/reset-demo-data.sh`.
 4. Start frontend with `npm run dev`.
-5. Use `Avery Analyst` to calculate approval route and submit for investment approval.
-6. Switch to `Iris Investment Approver` and approve investment review.
-7. Switch to `Riley Risk Officer`, confirm analyst-created exceptions, save, and submit risk review.
-8. Switch to `Reese Risk Approver` and approve final request.
+5. Choose one of the three demo requests from the request selector.
+6. Use `Avery Analyst` to calculate the approval route.
+7. Submit to `Iris Investment Approver`, approve the investment review, and continue to risk review.
+8. Switch to `Riley Risk Officer`, complete risk-only inputs and page confirmations, refresh the route after risk changes, and submit.
+9. Switch to `Reese Risk Approver` and approve the final request.
+
+## Approval Routing Logic
+
+Every request follows the same approval chain:
+
+`INVESTMENT_ANALYST → INVESTMENT_APPROVER → RISK_OFFICER → RISK_APPROVER → APPROVED`
+
+The calculation determines the risk-review requirements, not whether risk review is skipped:
+
+- Standard chain: Growth or Late-stage request below $5M with no material exception.
+- Enhanced-risk chain: amount is at least $5M, company stage is Seed or Pre-revenue, or the request has a material exception.
+
+Investment Analysts never receive risk-only fields. Risk inputs, risk-authored exceptions, page confirmations, and refer-back notes appear only to Risk Officers after the request enters `RISK_REVIEW`.

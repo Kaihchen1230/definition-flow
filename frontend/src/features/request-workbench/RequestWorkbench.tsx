@@ -50,15 +50,20 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
       autoSaveTimer.current = null;
     }
   }, []);
-  const savePage = useCallback(() => {
+  const savePage = useCallback(async () => {
     if (!canSavePage) {
-      return;
+      return false;
     }
-    patchRequest({
-      requestCaseId: evaluated.requestCaseId,
-      userId,
-      updates: pageDataPaths.map((path) => ({ path, value: getPath(draft, path) })),
-    });
+    try {
+      const result = await patchRequest({
+        requestCaseId: evaluated.requestCaseId,
+        userId,
+        updates: pageDataPaths.map((path) => ({ path, value: getPath(draft, path) })),
+      }).unwrap() as { success?: boolean };
+      return result.success !== false;
+    } catch {
+      return false;
+    }
   }, [canSavePage, draft, evaluated.requestCaseId, pageDataPaths, patchRequest, userId]);
   useEffect(() => {
     if (!selectedPageHasUnsavedChanges || save.isLoading) {
@@ -67,18 +72,18 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
     clearAutoSaveTimer();
     autoSaveTimer.current = setTimeout(() => {
       autoSaveTimer.current = null;
-      savePage();
+      void savePage();
     }, autoSaveDelayMs);
     return clearAutoSaveTimer;
   }, [clearAutoSaveTimer, save.isLoading, savePage, selectedPageHasUnsavedChanges]);
   const selectPage = (id: string) => {
     if (selectedPageHasUnsavedChanges) {
       clearAutoSaveTimer();
-      savePage();
+      void savePage();
     }
     setSelectedPageId(id);
   };
-  const runAction = (actionId: string) => {
+  const runAction = async (actionId: string) => {
     if (actionId.startsWith("workflow.submit")) {
       dispatch(enableValidationMode());
       if (firstIncompletePage) {
@@ -86,7 +91,14 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
         return;
       }
     }
-    runRequestAction({ requestCaseId: evaluated.requestCaseId, userId, actionId });
+    if (selectedPageHasUnsavedChanges) {
+      clearAutoSaveTimer();
+      const saved = await savePage();
+      if (!saved) {
+        return;
+      }
+    }
+    await runRequestAction({ requestCaseId: evaluated.requestCaseId, userId, actionId });
   };
 
   return (

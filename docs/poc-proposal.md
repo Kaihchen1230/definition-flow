@@ -34,6 +34,12 @@ Demo users:
 - RiskApprover
 - SupportViewer
 
+Routing paths:
+
+- Every request routes from Investment Analyst to Investment Approver, then Risk Officer, then Risk Approver.
+- High risk activates enhanced risk inputs and validation; it does not skip an approval stage.
+- High risk means amount at least $5M, Seed or Pre-revenue stage, or a material exception.
+
 Workflow states:
 
 - DRAFT

@@ -1,17 +1,20 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { User, EvaluationContext, RequestDataUpdate } from "../types/api";
+import type { DemoRequest, User, EvaluationContext, RequestDataUpdate } from "../types/api";
 
-export const demoRequestId = "11111111-1111-1111-1111-111111111111";
 const apiBaseUrl = typeof window === "undefined" ? "/" : `${window.location.origin}/`;
 
 export const approvalApi = createApi({
   reducerPath: "approvalApi",
   baseQuery: fetchBaseQuery({ baseUrl: apiBaseUrl }),
-  tagTypes: ["Users", "EvaluationContext"],
+  tagTypes: ["Users", "DemoRequests", "EvaluationContext"],
   endpoints: (builder) => ({
     fetchDemoUsers: builder.query<User[], void>({
       query: () => "api/dev/demo/users",
       providesTags: ["Users"],
+    }),
+    fetchDemoRequests: builder.query<DemoRequest[], void>({
+      query: () => "api/dev/demo/requests",
+      providesTags: ["DemoRequests"],
     }),
     fetchEvaluationContext: builder.query<EvaluationContext, { requestCaseId: string; userId: string }>({
       query: ({ requestCaseId, userId }) => `api/request-cases/${requestCaseId}/evaluation-context?userId=${userId}`,
@@ -22,7 +25,7 @@ export const approvalApi = createApi({
         url: "api/dev/demo/reset",
         method: "POST",
       }),
-      invalidatesTags: ["Users", "EvaluationContext"],
+      invalidatesTags: ["Users", "DemoRequests", "EvaluationContext"],
     }),
     reloadStartupInvestmentDefinitions: builder.mutation<unknown, void>({
       query: () => ({
@@ -52,6 +55,7 @@ export const approvalApi = createApi({
 
 export const {
   useFetchDemoUsersQuery,
+  useFetchDemoRequestsQuery,
   useFetchEvaluationContextQuery,
   useResetDemoDataMutation,
   useReloadStartupInvestmentDefinitionsMutation,

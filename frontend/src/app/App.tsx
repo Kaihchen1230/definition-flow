@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import {
-  demoRequestId,
+  useFetchDemoRequestsQuery,
   useFetchDemoUsersQuery,
   useFetchEvaluationContextQuery,
   useReloadStartupInvestmentDefinitionsMutation,
@@ -10,15 +10,17 @@ import { startupInvestmentUiDefinition } from "../config/uiDefinition";
 import { showEvaluationTrace } from "../config/appConstants";
 import { RequestWorkbench } from "../features/request-workbench/RequestWorkbench";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { setUserId, setSelectedPageId } from "../features/request-workbench/requestWorkbenchSlice";
+import { setRequestCaseId, setUserId, setSelectedPageId } from "../features/request-workbench/requestWorkbenchSlice";
 import { evaluateUiDefinition } from "../utils/evaluateUiDefinition";
 
 export const App = () => {
   const dispatch = useAppDispatch();
   const userId = useAppSelector((state) => state.requestWorkbench.userId);
+  const requestCaseId = useAppSelector((state) => state.requestWorkbench.requestCaseId);
   const selectedPageId = useAppSelector((state) => state.requestWorkbench.selectedPageId);
   const users = useFetchDemoUsersQuery();
-  const evaluated = useFetchEvaluationContextQuery({ requestCaseId: demoRequestId, userId });
+  const requests = useFetchDemoRequestsQuery();
+  const evaluated = useFetchEvaluationContextQuery({ requestCaseId, userId });
   const [resetDemo] = useResetDemoDataMutation();
   const [reloadDefinitions] = useReloadStartupInvestmentDefinitionsMutation();
 
@@ -32,6 +34,13 @@ export const App = () => {
     };
   }, [evaluated.data]);
   const visiblePages = useMemo(() => evaluatedUi?.pages.filter((page) => page.visible) ?? [], [evaluatedUi]);
+  const selectedRequest = requests.data?.find((request) => request.id === requestCaseId);
+
+  useEffect(() => {
+    if (requests.data?.length && !requests.data.some((request) => request.id === requestCaseId)) {
+      dispatch(setRequestCaseId(requests.data[0].id));
+    }
+  }, [dispatch, requestCaseId, requests.data]);
 
   useEffect(() => {
     if (!selectedPageId && visiblePages.length > 0) {
@@ -52,29 +61,42 @@ export const App = () => {
             <p className="app-kicker">Request-definition platform POC</p>
             <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <h1 className="text-[1.45rem] font-semibold leading-tight tracking-[-0.02em]">Startup Investment Approval</h1>
-              <span className="text-xs font-medium text-[var(--text-muted)]">Case {demoRequestId.slice(0, 8)}</span>
+              <span className="text-xs font-medium text-[var(--text-muted)]">Case {requestCaseId.slice(0, 8)}</span>
             </div>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">
               Role-aware review surface backed by server-side rules, workflow actions, validation, and audit trace.
             </p>
           </div>
           <div className="app-toolbar">
-            <label className="toolbar-field">
-              <span>User</span>
-              <select className="control min-w-64" value={userId} onChange={(event) => dispatch(setUserId(event.target.value))}>
-              {(users.data ?? []).map((user) => (
-                <option value={user.id} key={user.id}>
-                  {user.displayName} ({formatRoleName(user.role)})
-                </option>
-              ))}
-            </select>
+            <label className="toolbar-field toolbar-request-field">
+              <span>Demo request</span>
+              <select className="control" value={requestCaseId} onChange={(event) => dispatch(setRequestCaseId(event.target.value))}>
+                {(requests.data ?? []).map((request) => (
+                  <option value={request.id} key={request.id}>
+                    {request.label}
+                  </option>
+                ))}
+              </select>
             </label>
-            <button className="button secondary" onClick={() => reloadDefinitions()}>
-              Reload definitions
-            </button>
-            <button className="button secondary" onClick={() => resetDemo()}>
-              Reset demo
-            </button>
+            <label className="toolbar-field toolbar-user-field">
+              <span>User</span>
+              <select className="control" value={userId} onChange={(event) => dispatch(setUserId(event.target.value))}>
+                {(users.data ?? []).map((user) => (
+                  <option value={user.id} key={user.id}>
+                    {user.displayName} ({formatRoleName(user.role)})
+                  </option>
+                ))}
+              </select>
+            </label>
+            {selectedRequest ? <p className="toolbar-scenario">{selectedRequest.scenario}</p> : <span />}
+            <div className="toolbar-actions">
+              <button className="button secondary" onClick={() => reloadDefinitions()}>
+                Reload definitions
+              </button>
+              <button className="button secondary" onClick={() => resetDemo()}>
+                Reset demo
+              </button>
+            </div>
           </div>
         </header>
 

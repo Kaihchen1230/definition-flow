@@ -42,6 +42,7 @@ public class RequestEvaluationService {
         Map<String, JsonNode> namedRules = ruleCatalog.namedRules(bundle.rulesDefinition());
         List<ValidationIssue> renderIssues = validationService.validate(bundle.rulesDefinition(), bundle.context(), "render");
         List<ValidationIssue> submitIssues = validationService.validate(bundle.rulesDefinition(), bundle.context(), "submit");
+        List<ValidationIssue> riskSubmitIssues = validationService.validate(bundle.rulesDefinition(), bundle.context(), "riskSubmit");
         List<ValidationIssue> approveIssues = validationService.validate(bundle.rulesDefinition(), bundle.context(), "approve");
 
         ObjectNode response = objectMapper.createObjectNode();
@@ -56,7 +57,7 @@ public class RequestEvaluationService {
         response.put("canSave", canSave(bundle, namedRules));
         response.set("ruleResults", evaluateNamedRules(bundle, namedRules));
         response.set("workflowActions", evaluateWorkflowActions(bundle, namedRules));
-        response.set("validation", validationNode(renderIssues, submitIssues, approveIssues));
+        response.set("validation", validationNode(renderIssues, submitIssues, riskSubmitIssues, approveIssues));
         return response;
     }
 
@@ -119,10 +120,16 @@ public class RequestEvaluationService {
         return ruleEvaluator.evaluate(objectMapper.createObjectNode().put("rule", ruleId), context, namedRules);
     }
 
-    private ObjectNode validationNode(List<ValidationIssue> renderIssues, List<ValidationIssue> submitIssues, List<ValidationIssue> approveIssues) {
+    private ObjectNode validationNode(
+            List<ValidationIssue> renderIssues,
+            List<ValidationIssue> submitIssues,
+            List<ValidationIssue> riskSubmitIssues,
+            List<ValidationIssue> approveIssues
+    ) {
         ObjectNode node = objectMapper.createObjectNode();
         node.set("render", objectMapper.valueToTree(renderIssues));
         node.set("submit", objectMapper.valueToTree(submitIssues));
+        node.set("riskSubmit", objectMapper.valueToTree(riskSubmitIssues));
         node.set("approve", objectMapper.valueToTree(approveIssues));
         return node;
     }

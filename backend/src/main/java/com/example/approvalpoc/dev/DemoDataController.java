@@ -27,5 +27,9 @@ public class DemoDataController {
     public List<DemoUserEntity> users() {
         return userRepository.findAll();
     }
-}
 
+    @GetMapping("/requests")
+    public List<DemoRequestSummary> requests() {
+        return demoDataService.requests();
+    }
+}

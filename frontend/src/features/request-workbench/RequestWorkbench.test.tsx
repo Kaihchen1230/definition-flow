@@ -29,6 +29,10 @@ const evaluatedUi: EvaluatedUi = {
       visible: true,
       enabled: true,
       disabled: false,
+      visibleRule: null,
+      enabledRule: null,
+      required: false,
+      requiredRule: null,
       children: [
         {
           id: "companyName",
@@ -39,6 +43,10 @@ const evaluatedUi: EvaluatedUi = {
           visible: true,
           enabled: true,
           disabled: false,
+          visibleRule: null,
+          enabledRule: null,
+          required: true,
+          requiredRule: null,
         },
         {
           id: "internalNote",
@@ -49,6 +57,10 @@ const evaluatedUi: EvaluatedUi = {
           visible: false,
           enabled: true,
           disabled: false,
+          visibleRule: null,
+          enabledRule: null,
+          required: false,
+          requiredRule: null,
         },
       ],
     },
@@ -72,6 +84,7 @@ const evaluatedUi: EvaluatedUi = {
         path: "calculations.approvalRoute.exists",
       },
     ],
+    riskSubmit: [],
     approve: [],
   },
 };
@@ -183,6 +196,27 @@ describe("RequestWorkbench validation mode", () => {
     });
   });
 
+  it("flushes pending page changes before running a workflow action", async () => {
+    const user = userEvent.setup();
+    const methods: string[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input, init) => {
+        const request = input instanceof Request ? input : undefined;
+        methods.push(request?.method ?? init?.method ?? "GET");
+        return new Response(JSON.stringify({ success: true, message: "Saved", details: {} }));
+      })
+    );
+
+    renderWorkbench();
+
+    await user.clear(screen.getByDisplayValue("Acme Robotics"));
+    await user.type(screen.getByRole("textbox", { name: /Company name/ }), "Acme Labs");
+    await user.click(screen.getByRole("button", { name: "Submit for investment approval" }));
+
+    await waitFor(() => expect(methods).toEqual(["PATCH", "POST"]));
+  });
+
   it("marks missing required founder fields before submitting investment approval", async () => {
     const user = userEvent.setup();
     const fetch = vi.fn(async () => new Response(JSON.stringify({ success: true, message: "Submitted", details: {} })));
@@ -201,6 +235,10 @@ describe("RequestWorkbench validation mode", () => {
           visible: true,
           enabled: true,
           disabled: false,
+          visibleRule: null,
+          enabledRule: null,
+          required: false,
+          requiredRule: null,
           children: [
             {
               id: "foundersTable",
@@ -212,6 +250,10 @@ describe("RequestWorkbench validation mode", () => {
               visible: true,
               enabled: true,
               disabled: false,
+              visibleRule: null,
+              enabledRule: null,
+              required: true,
+              requiredRule: null,
             },
           ],
         },
@@ -242,6 +284,10 @@ describe("RequestWorkbench validation mode", () => {
           visible: true,
           enabled: true,
           disabled: false,
+          visibleRule: null,
+          enabledRule: null,
+          required: false,
+          requiredRule: null,
           children: [
             {
               id: "foundersTable",
@@ -253,6 +299,10 @@ describe("RequestWorkbench validation mode", () => {
               visible: true,
               enabled: true,
               disabled: false,
+              visibleRule: null,
+              enabledRule: null,
+              required: true,
+              requiredRule: null,
             },
           ],
         },

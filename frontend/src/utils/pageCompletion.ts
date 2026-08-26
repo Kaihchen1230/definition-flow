@@ -30,14 +30,35 @@ const evaluateNodeCompletion = (node: UiNode, data: Record<string, any>): PageCo
     return completion;
   }
 
+  if (node.type === "field" && node.required && node.dataPath) {
+    completion.requiredCount += 1;
+    if (isMissing(getPath(data, node.dataPath))) {
+      completion.missingCount += 1;
+      completion.missingPaths.add(node.dataPath);
+    }
+  }
+
   if (node.type === "collection" && node.dataPath && node.requiredFields?.length) {
     const rows = getPath(data, node.dataPath);
-    if (!Array.isArray(rows) || rows.length === 0) {
-      completion.requiredCount += node.requiredFields.length;
-      completion.missingCount += node.requiredFields.length;
-      node.requiredFields.forEach((field) => completion.missingPaths.add(`${node.dataPath}.0.${field}`));
+    const applicableRows = Array.isArray(rows)
+      ? rows
+          .map((row, rowIndex) => ({ row, rowIndex }))
+          .filter(({ row }) => {
+            if (!node.filter) {
+              return true;
+            }
+            const filterPath = node.filter.path.replace(/^\$item\.?/, "");
+            return node.filter.op === "eq" && getPath(row, filterPath) === node.filter.value;
+          })
+      : [];
+    if (applicableRows.length === 0) {
+      if (node.required) {
+        completion.requiredCount += 1;
+        completion.missingCount += 1;
+        completion.missingPaths.add(node.dataPath);
+      }
     } else {
-      rows.forEach((row, rowIndex) => {
+      applicableRows.forEach(({ row, rowIndex }) => {
         node.requiredFields?.forEach((field) => {
           const path = `${node.dataPath}.${rowIndex}.${field}`;
           completion.requiredCount += 1;

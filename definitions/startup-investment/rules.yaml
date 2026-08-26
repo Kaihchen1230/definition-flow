@@ -11,7 +11,7 @@ capabilities:
           value: EDIT_INVESTMENT_REQUEST
 
   canApproveInvestmentReview:
-    description: Investment approvers can route the case to risk review.
+    description: Investment approvers can approve standard requests.
     rule:
       and:
         - path: workflow.state
@@ -20,6 +20,21 @@ capabilities:
         - path: user.entitlements
           op: contains
           value: APPROVE_INVESTMENT_REVIEW
+
+  canSubmitToInvestmentApprover:
+    description: Every fresh request first goes to the Investment Approver.
+    rule:
+      and:
+        - rule: canEditInvestmentReview
+        - path: calculations.approvalRoute.exists
+          op: eq
+          value: true
+        - path: calculations.approvalRoute.stale
+          op: eq
+          value: false
+        - path: calculations.approvalRoute.result.requiredLevels
+          op: contains
+          value: INVESTMENT_APPROVER
 
   canEditRiskReview:
     description: Risk users can add review data during risk review.
@@ -67,11 +82,18 @@ capabilities:
 
 uiRules:
   showEnhancedRiskReview:
-    description: Enhanced risk review is visible for high-risk investment variants.
+    description: Enhanced risk review is visible only to risk users on high-risk requests.
     rule:
-      path: derived.investmentVariant
-      op: eq
-      value: HIGH_RISK
+      and:
+        - path: derived.investmentVariant
+          op: eq
+          value: HIGH_RISK
+        - path: user.role
+          op: eq
+          value: RiskOfficer
+        - path: workflow.state
+          op: in
+          value: [RISK_REVIEW, PENDING_RISK_APPROVAL, APPROVED, DECLINED]
 
   showFinalReview:
     description: Final review is visible near the final approval stage and after terminal decisions.
@@ -84,30 +106,182 @@ uiRules:
           op: eq
           value: Support
 
-actionRules:
-  canCalculateApprovalRoute:
-    description: Editable investment users can calculate an approval route after amount is provided.
+  showRiskOfficerConfirmations:
+    description: Page-level confirmations are visible only to risk users after routing to risk.
     rule:
       and:
-        - rule: canEditInvestmentReview
+        - path: user.role
+          op: eq
+          value: RiskOfficer
+        - path: workflow.state
+          op: in
+          value: [RISK_REVIEW, PENDING_RISK_APPROVAL, APPROVED, DECLINED]
+
+  showRiskExceptions:
+    description: Risk-authored exceptions appear only after a request is routed to risk.
+    rule:
+      and:
+        - path: user.role
+          op: eq
+          value: RiskOfficer
+        - path: workflow.state
+          op: in
+          value: [RISK_REVIEW, PENDING_RISK_APPROVAL, APPROVED, DECLINED]
+
+  requireCompanyProfileRiskNote:
+    description: A company profile refer-back requires an explanatory note.
+    rule:
+      path: requestData.risk.pageConfirmations.companyProfile
+      op: eq
+      value: REFER_BACK
+
+  requireInvestmentTermsRiskNote:
+    description: An investment terms refer-back requires an explanatory note.
+    rule:
+      path: requestData.risk.pageConfirmations.investmentTerms
+      op: eq
+      value: REFER_BACK
+
+  requireFoundersOwnershipRiskNote:
+    description: A founders and ownership refer-back requires an explanatory note.
+    rule:
+      path: requestData.risk.pageConfirmations.foundersOwnership
+      op: eq
+      value: REFER_BACK
+
+actionRules:
+  canCalculateApprovalRoute:
+    description: Investment and risk editors can recalculate an approval route after amount is provided.
+    rule:
+      and:
+        - or:
+            - rule: canEditInvestmentReview
+            - rule: canEditRiskReview
         - path: requestData.investment.amount
-          op: exists
+          op: notEmpty
 
 validationRules:
+  companyNameRequired:
+    description: Company name is mandatory throughout approval.
+    scope: [submit, riskSubmit, approve]
+    severity: blocking
+    pageId: companyProfile
+    nodeId: companyName
+    rule: { path: requestData.company.name, op: notEmpty }
+    message: Company name is required.
+
+  companyStageRequired:
+    description: Company stage is mandatory throughout approval.
+    scope: [submit, riskSubmit, approve]
+    severity: blocking
+    pageId: companyProfile
+    nodeId: companyStage
+    rule: { path: requestData.company.stage, op: notEmpty }
+    message: Company stage is required.
+
+  companySectorRequired:
+    description: Company sector is mandatory throughout approval.
+    scope: [submit, riskSubmit, approve]
+    severity: blocking
+    pageId: companyProfile
+    nodeId: companySector
+    rule: { path: requestData.company.sector, op: notEmpty }
+    message: Company sector is required.
+
+  companyFoundedDateRequired:
+    description: Founded date is mandatory throughout approval.
+    scope: [submit, riskSubmit, approve]
+    severity: blocking
+    pageId: companyProfile
+    nodeId: companyFoundedDate
+    rule: { path: requestData.company.foundedDate, op: notEmpty }
+    message: Founded date is required.
+
+  companyIncorporatedRequired:
+    description: Incorporation status is mandatory throughout approval.
+    scope: [submit, riskSubmit, approve]
+    severity: blocking
+    pageId: companyProfile
+    nodeId: companyIncorporated
+    rule: { path: requestData.company.incorporated, op: notEmpty }
+    message: Incorporation status is required.
+
+  investmentAmountRequired:
+    description: Investment amount is mandatory throughout approval.
+    scope: [submit, riskSubmit, approve]
+    severity: blocking
+    pageId: investmentTerms
+    nodeId: investmentAmount
+    rule: { path: requestData.investment.amount, op: notEmpty }
+    message: Investment amount is required.
+
+  investmentInstrumentRequired:
+    description: Investment instrument is mandatory throughout approval.
+    scope: [submit, riskSubmit, approve]
+    severity: blocking
+    pageId: investmentTerms
+    nodeId: investmentInstrument
+    rule: { path: requestData.investment.instrument, op: notEmpty }
+    message: Investment instrument is required.
+
+  investmentUseOfFundsRequired:
+    description: Use of funds is mandatory throughout approval.
+    scope: [submit, riskSubmit, approve]
+    severity: blocking
+    pageId: investmentTerms
+    nodeId: useOfFunds
+    rule: { path: requestData.investment.useOfFunds, op: notEmpty }
+    message: Use of funds is required.
+
   foundersRequired:
     description: A startup investment request needs at least one founder.
-    scope: [submit, approve]
+    scope: [submit, riskSubmit, approve]
     severity: blocking
+    pageId: foundersOwnership
+    nodeId: foundersTable
     rule:
       path: requestData.founders
       op: minCount
       value: 1
     message: At least one founder is required.
 
-  approvalRouteMustBeFresh:
-    description: The approval route must be calculated and fresh before submit.
-    scope: [submit]
+  founderDetailsRequired:
+    description: Every founder must have all mandatory details.
+    scope: [submit, riskSubmit, approve]
     severity: blocking
+    pageId: foundersOwnership
+    nodeId: foundersTable
+    rule:
+      allItems:
+        path: requestData.founders
+        rule:
+          and:
+            - { path: $item.name, op: notEmpty }
+            - { path: $item.title, op: notEmpty }
+            - { path: $item.ownershipPercent, op: notEmpty }
+            - { path: $item.backgroundCheck, op: notEmpty }
+    message: Every founder requires a name, title, ownership percentage, and background check.
+
+  exceptionDetailsRequired:
+    description: Every exception must have a description and severity.
+    scope: [submit, riskSubmit, approve]
+    severity: blocking
+    pageId: riskExceptions
+    rule:
+      allItems:
+        path: requestData.exceptions
+        rule:
+          and:
+            - { path: $item.description, op: notEmpty }
+            - { path: $item.severity, op: notEmpty }
+    message: Every exception requires a description and severity.
+
+  approvalRouteMustBeFresh:
+    description: The approval route must remain fresh across investment, risk, and final approval.
+    scope: [submit, riskSubmit, approve]
+    severity: blocking
+    pageId: approvalRoute
+    nodeId: approvalRoutePanel
     rule:
       and:
         - path: calculations.approvalRoute.exists
@@ -116,12 +290,14 @@ validationRules:
         - path: calculations.approvalRoute.stale
           op: eq
           value: false
-    message: Approval route must be calculated before submit.
+    message: Approval route must be calculated and refreshed after any routing input changes.
 
   analystExceptionsNeedRiskConfirmation:
-    description: Risk must confirm analyst-created exceptions before final approval.
-    scope: [approve]
+    description: Risk must confirm analyst-created exceptions before leaving risk review.
+    scope: [riskSubmit, approve]
     severity: blocking
+    pageId: riskExceptions
+    nodeId: analystExceptions
     rule:
       allItems:
         path: requestData.exceptions
@@ -133,3 +309,113 @@ validationRules:
           path: $item.riskConfirmation
           op: notEmpty
     message: Risk confirmation is required for each analyst-created exception.
+
+  companyProfileRiskConfirmed:
+    description: Risk must explicitly confirm the company profile page.
+    scope: [riskSubmit, approve]
+    severity: blocking
+    pageId: companyProfile
+    nodeId: companyProfileRiskConfirmation
+    rule:
+      path: requestData.risk.pageConfirmations.companyProfile
+      op: eq
+      value: CONFIRMED
+    message: Risk must confirm the Company Profile page before the request can proceed.
+
+  investmentTermsRiskConfirmed:
+    description: Risk must explicitly confirm the investment terms page.
+    scope: [riskSubmit, approve]
+    severity: blocking
+    pageId: investmentTerms
+    nodeId: investmentTermsRiskConfirmation
+    rule:
+      path: requestData.risk.pageConfirmations.investmentTerms
+      op: eq
+      value: CONFIRMED
+    message: Risk must confirm the Investment Terms page before the request can proceed.
+
+  foundersOwnershipRiskConfirmed:
+    description: Risk must explicitly confirm the founders and ownership page.
+    scope: [riskSubmit, approve]
+    severity: blocking
+    pageId: foundersOwnership
+    nodeId: foundersOwnershipRiskConfirmation
+    rule:
+      path: requestData.risk.pageConfirmations.foundersOwnership
+      op: eq
+      value: CONFIRMED
+    message: Risk must confirm the Founders & Ownership page before the request can proceed.
+
+  companyProfileRiskNoteRequired:
+    description: Risk must explain why the company profile is referred back.
+    scope: [riskSubmit, approve]
+    severity: blocking
+    pageId: companyProfile
+    nodeId: companyProfileRiskNote
+    rule:
+      or:
+        - not: { rule: requireCompanyProfileRiskNote }
+        - { path: requestData.risk.pageConfirmationNotes.companyProfile, op: notEmpty }
+    message: Add a note explaining why the Company Profile page is being referred back.
+
+  investmentTermsRiskNoteRequired:
+    description: Risk must explain why the investment terms are referred back.
+    scope: [riskSubmit, approve]
+    severity: blocking
+    pageId: investmentTerms
+    nodeId: investmentTermsRiskNote
+    rule:
+      or:
+        - not: { rule: requireInvestmentTermsRiskNote }
+        - { path: requestData.risk.pageConfirmationNotes.investmentTerms, op: notEmpty }
+    message: Add a note explaining why the Investment Terms page is being referred back.
+
+  foundersOwnershipRiskNoteRequired:
+    description: Risk must explain why founders and ownership are referred back.
+    scope: [riskSubmit, approve]
+    severity: blocking
+    pageId: foundersOwnership
+    nodeId: foundersOwnershipRiskNote
+    rule:
+      or:
+        - not: { rule: requireFoundersOwnershipRiskNote }
+        - { path: requestData.risk.pageConfirmationNotes.foundersOwnership, op: notEmpty }
+    message: Add a note explaining why the Founders & Ownership page is being referred back.
+
+  enhancedRiskNarrativeRequired:
+    description: High-risk investments require an enhanced narrative authored on the risk page.
+    scope: [riskSubmit, approve]
+    severity: blocking
+    pageId: enhancedRiskReview
+    nodeId: enhancedRiskNarrative
+    rule:
+      or:
+        - not: { rule: showEnhancedRiskReview }
+        - { path: requestData.risk.enhancedReviewNarrative, op: notEmpty }
+    message: Enhanced risk narrative is required for high-risk investments.
+
+  riskRecommendationRequired:
+    description: High-risk investments require a risk recommendation.
+    scope: [riskSubmit, approve]
+    severity: blocking
+    pageId: enhancedRiskReview
+    nodeId: riskRecommendation
+    rule:
+      or:
+        - not: { rule: showEnhancedRiskReview }
+        - { path: requestData.risk.recommendation, op: notEmpty }
+    message: Risk recommendation is required for high-risk investments.
+
+  riskRecommendationMustSupportApproval:
+    description: Final approval is allowed only when risk recommends approval.
+    scope: [approve]
+    severity: blocking
+    pageId: enhancedRiskReview
+    nodeId: riskRecommendation
+    rule:
+      or:
+        - not: { rule: showEnhancedRiskReview }
+        - path: requestData.risk.recommendation
+          op: eq
+          value: APPROVE
+    message: Risk must recommend approval before the final request can be approved.
