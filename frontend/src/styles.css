@@ -42,7 +42,7 @@ body {
 
 .app-header {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 24px;
   border: 1px solid var(--line);
@@ -65,11 +65,10 @@ body {
 }
 
 .app-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: flex-end;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: minmax(280px, 1.25fr) minmax(250px, 1fr);
+  gap: 8px 10px;
+  width: min(100%, 760px);
 }
 
 .toolbar-field {
@@ -81,6 +80,30 @@ body {
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 650;
+}
+
+.toolbar-request-field {
+  grid-column: 1;
+}
+
+.toolbar-user-field {
+  grid-column: 2;
+}
+
+.toolbar-scenario {
+  align-self: center;
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.4;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .workbench-grid {
@@ -686,6 +709,16 @@ body {
   }
 
   .app-toolbar {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .toolbar-request-field,
+  .toolbar-user-field {
+    grid-column: 1;
+  }
+
+  .toolbar-actions {
     justify-content: flex-start;
   }
 

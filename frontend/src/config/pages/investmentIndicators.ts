@@ -4,5 +4,11 @@ export const investmentIndicatorsPage = {
   id: "investmentIndicators",
   label: "Investment Indicators",
   type: "page",
-  children: [{ id: "indicators", type: "field", component: "checkboxGroup", dataPath: "indicators", label: "Indicators" }],
+  visibleRule: null,
+  enabledRule: "canEditInvestmentReview",
+  required: false,
+  requiredRule: null,
+  children: [
+    { id: "indicators", type: "field", component: "checkboxGroup", dataPath: "indicators", label: "Indicators", visibleRule: null, enabledRule: null, required: false, requiredRule: null },
+  ],
 } satisfies UiConfigNode;

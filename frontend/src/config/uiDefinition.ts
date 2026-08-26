@@ -8,8 +8,7 @@ import { investmentIndicatorsPage } from "./pages/investmentIndicators";
 import { investmentTermsPage } from "./pages/investmentTerms";
 import { riskExceptionsPage } from "./pages/riskExceptions";
 
-export type UiConfigNode = Omit<UiNode, "visible" | "enabled" | "disabled" | "children" | "actions"> &
-  Partial<Pick<UiNode, "visible" | "enabled" | "disabled">> & {
+export type UiConfigNode = Omit<UiNode, "visible" | "enabled" | "disabled" | "value" | "debug" | "children" | "actions"> & {
     children?: UiConfigNode[];
     actions?: UiConfigNode[];
   };

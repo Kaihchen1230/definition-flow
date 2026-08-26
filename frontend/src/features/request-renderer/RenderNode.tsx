@@ -42,7 +42,7 @@ export const RenderNode = ({ node, data, setData, userRole, runAction, missingPa
     return <ActionPanel node={node} runAction={runAction} />;
   }
   if (node.type === "summary") {
-    return <pre className="code-surface">{JSON.stringify(data, null, 2)}</pre>;
+    return <pre className="code-surface">{JSON.stringify(summaryDataForRole(data, userRole), null, 2)}</pre>;
   }
   if (node.type === "action") {
     return (
@@ -54,5 +54,25 @@ export const RenderNode = ({ node, data, setData, userRole, runAction, missingPa
   if (node.type !== "field" || !node.dataPath) {
     return null;
   }
-  return <Field node={node} value={getPath(data, node.dataPath)} onChange={(value) => setData((current) => setPath(current, node.dataPath!, value))} />;
+  return (
+    <Field
+      node={node}
+      value={getPath(data, node.dataPath)}
+      onChange={(value) => setData((current) => setPath(current, node.dataPath!, value))}
+      invalid={validationActive && missingPaths?.has(node.dataPath)}
+    />
+  );
+};
+
+const summaryDataForRole = (data: Record<string, any>, userRole: string) => {
+  if (userRole !== "InvestmentAnalyst") {
+    return data;
+  }
+  const { risk: _risk, ...investmentData } = data;
+  return {
+    ...investmentData,
+    exceptions: Array.isArray(data.exceptions)
+      ? data.exceptions.filter((item: any) => item.createdBy?.role === "InvestmentAnalyst")
+      : [],
+  };
 };

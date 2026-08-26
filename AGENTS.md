@@ -93,10 +93,10 @@ npm run build
 
 ## Documentation Maintenance
 
-- Keep `README.md` and `CLAUDE.md` current whenever architecture, setup, workflow, dependencies, or project structure changes.
+- Keep `README.md` and `AGENTS.md` current whenever architecture, setup, workflow, dependencies, or project structure changes.
 - If a documented flow, command, package, folder, or convention is no longer true, update it in the same change.
 - If stale documentation is no longer useful, remove it instead of leaving conflicting guidance.
-- When adding a new contributor rule, include it in `CLAUDE.md`.
+- When adding a new contributor rule, include it in `AGENTS.md`.
 
 ## Git Hygiene
 

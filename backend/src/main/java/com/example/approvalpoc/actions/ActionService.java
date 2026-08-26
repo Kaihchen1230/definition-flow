@@ -112,6 +112,7 @@ public class ActionService {
     private ActionResult workflowTransition(RuntimeBundle bundle, String actionId, JsonNode payload) {
         String validationScope = switch (actionId) {
             case "workflow.submitInvestmentReview" -> "submit";
+            case "workflow.submitRiskReview" -> "riskSubmit";
             case "workflow.approveFinalRequest" -> "approve";
             default -> "render";
         };
@@ -155,6 +156,9 @@ public class ActionService {
     private String scopeFor(String actionId) {
         if (actionId.equals("workflow.submitInvestmentReview")) {
             return "submit";
+        }
+        if (actionId.equals("workflow.submitRiskReview")) {
+            return "riskSubmit";
         }
         if (actionId.equals("workflow.approveFinalRequest")) {
             return "approve";

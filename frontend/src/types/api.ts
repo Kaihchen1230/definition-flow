@@ -4,6 +4,14 @@ export type User = {
   role: string;
 };
 
+export type DemoRequest = {
+  id: string;
+  label: string;
+  scenario: string;
+  companyName: string;
+  workflowState: string;
+};
+
 export type UiNode = {
   id: string;
   type: string;
@@ -14,8 +22,10 @@ export type UiNode = {
   visible: boolean;
   enabled: boolean;
   disabled: boolean;
-  visibleRule?: string;
-  enabledRule?: string;
+  visibleRule: string | null;
+  enabledRule: string | null;
+  required: boolean;
+  requiredRule: string | null;
   filter?: { path: string; op: string; value: string };
   debug?: Record<string, unknown>;
   children?: UiNode[];
@@ -71,6 +81,7 @@ export type EvaluationContext = {
   workflowActions: WorkflowAction[];
   validation: {
     submit: ValidationIssue[];
+    riskSubmit: ValidationIssue[];
     approve: ValidationIssue[];
     render: ValidationIssue[];
   };

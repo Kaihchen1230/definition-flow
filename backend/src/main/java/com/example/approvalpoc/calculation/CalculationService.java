@@ -61,14 +61,16 @@ public class CalculationService {
         int amount = context.path("requestData").path("investment").path("amount").asInt(0);
         String variant = context.path("derived").path("investmentVariant").asText("STANDARD");
         ArrayNode levels = objectMapper.createArrayNode();
+        boolean enhancedRisk = amount >= 5_000_000 || variant.equals("HIGH_RISK");
         levels.add("INVESTMENT_APPROVER");
-        if (amount >= 5_000_000 || variant.equals("HIGH_RISK")) {
-            levels.add("RISK_APPROVER");
-        }
+        levels.add("RISK_OFFICER");
+        levels.add("RISK_APPROVER");
         ObjectNode result = objectMapper.createObjectNode();
         result.set("requiredLevels", levels);
         result.put("variantUsed", variant);
         result.put("amountUsed", amount);
+        result.put("routeType", enhancedRisk ? "ENHANCED_RISK_CHAIN" : "STANDARD_APPROVAL_CHAIN");
+        result.put("routingReason", routingReason(context, amount));
 
         String inputHash = dependencyHash(definition, context);
         CalculationResultEntity entity = repository.findFirstByRequestCaseIdAndCalculationIdOrderByCalculatedAtDesc(requestCaseId, "approvalRoute")
@@ -78,6 +80,20 @@ public class CalculationService {
         entity.setCalculatedBy(userId);
         entity.setCalculatedAt(Instant.now());
         return repository.save(entity);
+    }
+
+    private String routingReason(JsonNode context, int amount) {
+        if (amount >= 5_000_000) {
+            return "Investment amount is at least $5M.";
+        }
+        String stage = context.path("requestData").path("company").path("stage").asText();
+        if (stage.equals("SEED") || stage.equals("PRE_REVENUE")) {
+            return "Company is Seed or Pre-revenue stage.";
+        }
+        if (context.path("requestData").path("risk").path("hasMaterialException").asBoolean(false)) {
+            return "Request has a material exception.";
+        }
+        return "Growth or Late-stage request below $5M with no material exception.";
     }
 
     public String dependencyHash(JsonNode calculationDefinition, JsonNode context) {
@@ -130,4 +146,3 @@ public class CalculationService {
         }
     }
 }
-

@@ -33,4 +33,25 @@ fields:
       - RELATED_PARTY_TRANSACTION
       - FOREIGN_OWNERSHIP
       - DATA_PRIVACY_EXPOSURE
-
+  risk.hasMaterialException:
+    valueType: boolean
+  risk.enhancedReviewNarrative:
+    valueType: string
+  risk.recommendation:
+    valueType: enum
+    allowedValues: [APPROVE, DECLINE, REFER_BACK]
+  risk.pageConfirmations.companyProfile:
+    valueType: enum
+    allowedValues: [CONFIRMED, REFER_BACK]
+  risk.pageConfirmations.investmentTerms:
+    valueType: enum
+    allowedValues: [CONFIRMED, REFER_BACK]
+  risk.pageConfirmations.foundersOwnership:
+    valueType: enum
+    allowedValues: [CONFIRMED, REFER_BACK]
+  risk.pageConfirmationNotes.companyProfile:
+    valueType: string
+  risk.pageConfirmationNotes.investmentTerms:
+    valueType: string
+  risk.pageConfirmationNotes.foundersOwnership:
+    valueType: string
