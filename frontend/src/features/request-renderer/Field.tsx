@@ -1,6 +1,7 @@
 import { enumOptions } from "../../config/enumOptions";
 import type { UiNode } from "../../types/api";
 import { localToday } from "../../utils/fieldValidation";
+import { DropdownControl } from "./fields/dropdown/DropdownControl";
 
 type FieldProps = {
   node: UiNode;
@@ -26,19 +27,22 @@ export const Field = ({ node, value, onChange, invalid = false }: FieldProps) =>
     );
   }
   if (node.component === "dropdown") {
+    const labelId = `${node.id}-label`;
     return (
-      <label className="field">
-        <span>{node.label}{node.required ? " *" : ""}</span>
-        <select className={`control ${invalid ? "is-invalid" : ""}`} value={value ?? ""} disabled={disabled} aria-invalid={invalid} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)}>
-          <option value="">Select</option>
-          {options.map((option) => (
-            <option value={option.value} key={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+      <div className="field">
+        <span id={labelId}>{node.label}{node.required ? " *" : ""}</span>
+        <DropdownControl
+          id={node.id}
+          labelId={labelId}
+          value={value ?? ""}
+          options={options}
+          disabled={disabled}
+          invalid={invalid}
+          describedBy={describedBy}
+          onChange={onChange}
+        />
         {helper}
-      </label>
+      </div>
     );
   }
   if (node.component === "radioGroup") {
