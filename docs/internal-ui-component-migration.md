@@ -580,3 +580,32 @@ Use internal design-system defaults or component-owned code for size, spacing, a
 | `frontend/src/features/request-renderer/*.test.tsx` | Add adapter and integration behavior coverage |
 
 The key design principle is simple: page configuration selects a semantic UI capability, and the registry plus adapter layer decides how the company's internal design system implements that capability.
+
+## POC Custom Dropdown Demo
+
+The repository includes one concrete adapter example for `component: "dropdown"`:
+
+```text
+frontend/src/features/request-renderer/fields/dropdown/
+  CustomDropdown.tsx
+  NativeDropdown.tsx
+  DropdownControl.ts
+  types.ts
+```
+
+`DropdownControl.ts` is the single implementation switch. The custom component is active by default:
+
+```ts
+// Demo implementation switch: keep exactly one export active.
+export { CustomDropdown as DropdownControl } from "./CustomDropdown";
+// export { NativeDropdown as DropdownControl } from "./NativeDropdown";
+```
+
+To switch back to the native control, comment the custom export and uncomment the native export:
+
+```ts
+// export { CustomDropdown as DropdownControl } from "./CustomDropdown";
+export { NativeDropdown as DropdownControl } from "./NativeDropdown";
+```
+
+No page config, component ID, enum option, data path, or business rule changes are required. The example demonstrates the same seam an internal design-system component would use.

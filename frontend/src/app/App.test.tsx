@@ -108,7 +108,13 @@ describe("App request creation", () => {
 
     await user.type(screen.getByRole("textbox", { name: /Company Name/ }), "Acme Robotics");
     await user.click(screen.getByRole("radio", { name: "Seed" }));
-    await user.selectOptions(screen.getByRole("combobox", { name: /Sector/ }), "AI");
+    const sectorControl = screen.getByRole("combobox", { name: /Sector/ });
+    if (sectorControl instanceof HTMLSelectElement) {
+      await user.selectOptions(sectorControl, "AI");
+    } else {
+      await user.click(sectorControl);
+      await user.click(screen.getByRole("option", { name: "AI" }));
+    }
     fireEvent.change(screen.getByLabelText(/Date Founded/), { target: { value: "2024-01-01" } });
     await user.click(screen.getByRole("radio", { name: "Yes" }));
     await user.click(screen.getByRole("button", { name: /Create request/ }));
