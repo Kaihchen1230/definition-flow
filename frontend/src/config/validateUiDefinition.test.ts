@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { UiConfigNode } from "./uiDefinition";
+import type { UiConfigNode, UiNavigationGroup } from "./uiDefinition";
 import { validateUiDefinition } from "./validateUiDefinition";
 
 const field = (overrides: Partial<UiConfigNode> = {}): UiConfigNode => ({
@@ -16,8 +16,8 @@ const field = (overrides: Partial<UiConfigNode> = {}): UiConfigNode => ({
 
 describe("validateUiDefinition", () => {
   it("reports invalid component, rule, data-path, option, and duplicate-id configuration", () => {
-    const pages: UiConfigNode[] = [
-      {
+    const groups: UiNavigationGroup[] = [
+      { id: "request", label: "Request", pages: [{
         id: "company",
         type: "page",
         visibleRule: "missingRule",
@@ -28,15 +28,18 @@ describe("validateUiDefinition", () => {
           field({ component: "missingRenderer" as any, dataPath: "company.unknown" }),
           field({ component: "dropdown" }),
         ],
-      },
+      }] },
+      { id: "request", label: "Duplicate", pages: [] },
     ];
 
-    expect(validateUiDefinition(pages, {
+    expect(validateUiDefinition(groups, {
       componentIds: new Set(["textInput", "dropdown"]),
       dataPaths: new Set(["company.name"]),
       optionPaths: new Set(),
       ruleIds: new Set(["knownRule"]),
     })).toEqual([
+      "Duplicate navigation group id: request",
+      "Navigation group has no configured pages: request",
       "Duplicate UI node id: companyName",
       "Unknown visibleRule 'missingRule' on node company",
       "Unknown component 'missingRenderer' on node companyName",

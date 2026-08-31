@@ -1,4 +1,4 @@
-import type { UiConfigNode } from "./uiDefinition";
+import type { UiConfigNode, UiNavigationGroup } from "./uiDefinition";
 
 type UiDefinitionValidationCatalog = {
   componentIds: Set<string>;
@@ -9,10 +9,22 @@ type UiDefinitionValidationCatalog = {
 
 const optionComponents = new Set(["dropdown", "radioGroup", "checkboxGroup"]);
 
-export const validateUiDefinition = (pages: UiConfigNode[], catalog: UiDefinitionValidationCatalog) => {
+export const validateUiDefinition = (groups: UiNavigationGroup[], catalog: UiDefinitionValidationCatalog) => {
+  const pages = groups.flatMap((group) => group.pages);
   const nodes = flattenNodes(pages);
   const errors: string[] = [];
+  const seenGroupIds = new Set<string>();
   const seenIds = new Set<string>();
+
+  groups.forEach((group) => {
+    if (seenGroupIds.has(group.id)) {
+      errors.push(`Duplicate navigation group id: ${group.id}`);
+    }
+    seenGroupIds.add(group.id);
+    if (group.pages.length === 0) {
+      errors.push(`Navigation group has no configured pages: ${group.id}`);
+    }
+  });
 
   nodes.forEach((node) => {
     if (seenIds.has(node.id)) {

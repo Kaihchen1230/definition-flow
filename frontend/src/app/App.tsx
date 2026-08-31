@@ -15,6 +15,7 @@ import { setRequestCaseId, setUserId, setSelectedPageId } from "../features/requ
 import { evaluateUiDefinition } from "../utils/evaluateUiDefinition";
 import { evaluateFrontendContext } from "../rules/evaluateFrontendContext";
 import { getPath } from "../utils/objectPath";
+import { flattenNavigationPages } from "../utils/pageNavigation";
 
 export const App = () => {
   const dispatch = useAppDispatch();
@@ -35,7 +36,7 @@ export const App = () => {
       return undefined;
     }
     const frontendEvaluation = evaluateFrontendContext(evaluated.data);
-    return { ...frontendEvaluation, pages: evaluateUiDefinition(startupInvestmentUiDefinition.pages, frontendEvaluation) };
+    return { ...frontendEvaluation, pages: evaluateUiDefinition(flattenNavigationPages(startupInvestmentUiDefinition.groups), frontendEvaluation) };
   }, [evaluated.data]);
   const visiblePages = useMemo(() => evaluatedUi?.pages.filter((page) => page.visible) ?? [], [evaluatedUi]);
   const selectedRequest = requests.data?.find((request) => request.id === requestCaseId);
@@ -155,7 +156,7 @@ export const App = () => {
         {requestCaseId && evaluatedUi && (
           <RequestWorkbench
             evaluated={evaluatedUi}
-            pagesConfig={startupInvestmentUiDefinition.pages}
+            navigationGroups={startupInvestmentUiDefinition.groups}
             selectedPage={selectedPage}
             selectedPageId={selectedPageId}
             setSelectedPageId={(id) => dispatch(setSelectedPageId(id))}

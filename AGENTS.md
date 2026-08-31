@@ -21,7 +21,7 @@ Use this guide when making changes in this repository so the POC stays consisten
 - Put shared API response types in `frontend/src/types/`.
 - Put static frontend config in `frontend/src/config/`.
 - Put the frontend-owned business-rule catalog, derived facts, evaluator, and tests in `frontend/src/rules/`.
-- Keep frontend-owned request page UI config in `frontend/src/config/pages/`, one file per page; assemble page order in `frontend/src/config/uiDefinition.ts`.
+- Keep frontend-owned request page UI config in `frontend/src/config/pages/`, one file per page; assemble navigation groups and page order in `frontend/src/config/uiDefinition.ts`. Group order followed by child-page order is the request navigation sequence.
 - Register renderer component IDs in `frontend/src/types/uiComponents.ts` and their implementations in `frontend/src/features/request-renderer/componentRegistry.tsx`; UI definitions must fail fast on unknown components, rules, option catalogs, data paths, or duplicate node IDs.
 - Put reusable request workbench panels in `frontend/src/features/request-workbench/`.
 - Put the pre-persistence request creation experience in `frontend/src/features/request-intake/`; reuse page config and semantic completion rules, then create the empty request and save the initial page as a scoped patch.

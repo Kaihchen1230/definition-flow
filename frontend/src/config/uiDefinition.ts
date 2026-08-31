@@ -18,20 +18,22 @@ export type UiConfigNode = Omit<UiNode, "visible" | "enabled" | "disabled" | "va
     actions?: UiConfigNode[];
   };
 
-export type UiDefinition = {
+export type UiNavigationGroup = {
+  id: string;
+  label: string;
   pages: UiConfigNode[];
 };
 
+export type UiDefinition = {
+  groups: UiNavigationGroup[];
+};
+
 export const startupInvestmentUiDefinition = {
-  pages: [
-    companyProfilePage,
-    investmentTermsPage,
-    foundersOwnershipPage,
-    riskExceptionsPage,
-    investmentIndicatorsPage,
-    enhancedRiskReviewPage,
-    approvalRequirementsPage,
-    finalReviewPage,
+  groups: [
+    { id: "company", label: "Company", pages: [companyProfilePage, foundersOwnershipPage] },
+    { id: "investment", label: "Investment", pages: [investmentTermsPage, investmentIndicatorsPage] },
+    { id: "riskReview", label: "Risk Review", pages: [riskExceptionsPage, enhancedRiskReviewPage] },
+    { id: "decision", label: "Decision", pages: [approvalRequirementsPage, finalReviewPage] },
   ],
 } satisfies UiDefinition;
 
@@ -42,7 +44,7 @@ const ruleIds = new Set([
   ...Object.keys(startupInvestmentRules.validationRules),
 ]);
 
-export const startupInvestmentUiDefinitionErrors = validateUiDefinition(startupInvestmentUiDefinition.pages, {
+export const startupInvestmentUiDefinitionErrors = validateUiDefinition(startupInvestmentUiDefinition.groups, {
   componentIds: new Set(uiComponentIds),
   dataPaths: startupInvestmentDataPaths,
   optionPaths: new Set(Object.keys(enumOptions)),
