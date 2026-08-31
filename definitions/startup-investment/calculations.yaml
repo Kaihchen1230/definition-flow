@@ -1,9 +1,1 @@
-calculations:
-  approvalRoute:
-    description: Manual calculation for required approval authority.
-    actionType: calculation.approvalRoute
-    dependsOn:
-      - requestData.investment.amount
-      - requestData.exceptions
-      - derived.investmentVariant
-
+calculations: {}

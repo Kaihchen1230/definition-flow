@@ -1,11 +1,18 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
-import type { DemoRequest, User, EvaluationContext, RequestDataUpdate } from "../types/api";
+import { frontendRuleCatalogVersion } from "../config/appConstants";
+import type { CreatedRequest, DemoRequest, User, RawEvaluationContext, RequestDataUpdate } from "../types/api";
 
 const apiBaseUrl = typeof window === "undefined" ? "/" : `${window.location.origin}/`;
 
 export const approvalApi = createApi({
   reducerPath: "approvalApi",
-  baseQuery: fetchBaseQuery({ baseUrl: apiBaseUrl }),
+  baseQuery: fetchBaseQuery({
+    baseUrl: apiBaseUrl,
+    prepareHeaders: (headers) => {
+      headers.set("X-Frontend-Rule-Catalog-Version", frontendRuleCatalogVersion);
+      return headers;
+    },
+  }),
   tagTypes: ["Users", "DemoRequests", "EvaluationContext"],
   endpoints: (builder) => ({
     fetchDemoUsers: builder.query<User[], void>({
@@ -16,9 +23,17 @@ export const approvalApi = createApi({
       query: () => "api/dev/demo/requests",
       providesTags: ["DemoRequests"],
     }),
-    fetchEvaluationContext: builder.query<EvaluationContext, { requestCaseId: string; userId: string }>({
+    fetchEvaluationContext: builder.query<RawEvaluationContext, { requestCaseId: string; userId: string }>({
       query: ({ requestCaseId, userId }) => `api/request-cases/${requestCaseId}/evaluation-context?userId=${userId}`,
       providesTags: ["EvaluationContext"],
+    }),
+    createRequest: builder.mutation<CreatedRequest, { requestType: string; userId: string }>({
+      query: ({ requestType, userId }) => ({
+        url: `api/request-cases?userId=${userId}`,
+        method: "POST",
+        body: { requestType },
+      }),
+      invalidatesTags: ["DemoRequests"],
     }),
     resetDemoData: builder.mutation<unknown, void>({
       query: () => ({
@@ -57,6 +72,7 @@ export const {
   useFetchDemoUsersQuery,
   useFetchDemoRequestsQuery,
   useFetchEvaluationContextQuery,
+  useCreateRequestMutation,
   useResetDemoDataMutation,
   useReloadStartupInvestmentDefinitionsMutation,
   usePatchRequestDataMutation,

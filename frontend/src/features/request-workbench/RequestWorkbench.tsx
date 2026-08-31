@@ -1,6 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useExecuteRequestActionMutation, usePatchRequestDataMutation } from "../../services/approvalApi";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import type { UiConfigNode } from "../../config/uiDefinition";
+import { evaluateUiDefinition } from "../../utils/evaluateUiDefinition";
 import { getPath } from "../../utils/objectPath";
 import { evaluatePageCompletion } from "../../utils/pageCompletion";
 import { collectDataPaths } from "../../utils/uiNode";
@@ -10,12 +12,12 @@ import { ActionMessage } from "./ActionMessage";
 import { StatusBar } from "./StatusBar";
 import { TracePanel } from "./TracePanel";
 import { WorkflowActions } from "./WorkflowActions";
-import { enableValidationMode, setDraft } from "./requestWorkbenchSlice";
-
-const autoSaveDelayMs = 600;
+import { enableValidationMode, setDraft, setHasUnsavedChanges } from "./requestWorkbenchSlice";
+import { evaluateFrontendContext } from "../../rules/evaluateFrontendContext";
 
 type RequestWorkbenchProps = {
   evaluated: EvaluatedUi;
+  pagesConfig: UiConfigNode[];
   selectedPage?: UiNode;
   selectedPageId: string | null;
   setSelectedPageId: (id: string) => void;
@@ -23,82 +25,104 @@ type RequestWorkbenchProps = {
   showEvaluationTrace?: boolean;
 };
 
-export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setSelectedPageId, userId, showEvaluationTrace = true }: RequestWorkbenchProps) => {
+export const RequestWorkbench = ({ evaluated, pagesConfig, selectedPage, selectedPageId, setSelectedPageId, userId, showEvaluationTrace = true }: RequestWorkbenchProps) => {
   const dispatch = useAppDispatch();
   const draft = useAppSelector((state) => state.requestWorkbench.draft);
   const validationMode = useAppSelector((state) => state.requestWorkbench.validationMode);
   const [patchRequest, save] = usePatchRequestDataMutation();
   const [runRequestAction, action] = useExecuteRequestActionMutation();
-  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [operationError, setOperationError] = useState<string | null>(null);
 
   useEffect(() => {
     dispatch(setDraft(evaluated.requestData));
   }, [dispatch, evaluated.requestData]);
 
-  const visiblePages = evaluated.pages.filter((page) => page.visible);
+  const draftEvaluation = useMemo(() => evaluateFrontendContext({
+    requestCaseId: evaluated.requestCaseId,
+    requestType: evaluated.requestType,
+    workflowState: evaluated.workflowState,
+    user: evaluated.user,
+    requestData: evaluated.requestData,
+    calculations: evaluated.calculations,
+    definitionVersions: evaluated.definitionVersions,
+    workflowActions: evaluated.workflowActions.map(({ id, label }) => ({
+      id,
+      label,
+    })),
+  }, draft), [draft, evaluated]);
+  const draftPages = useMemo(() => evaluateUiDefinition(pagesConfig, draftEvaluation), [draftEvaluation, pagesConfig]);
+  const visiblePages = draftPages.filter((page) => page.visible);
+  const draftSelectedPage = visiblePages.find((page) => page.id === selectedPageId) ?? selectedPage;
   const pageCompletion = useMemo(() => new Map(visiblePages.map((page) => [page.id, evaluatePageCompletion(page, draft)])), [draft, visiblePages]);
   const firstIncompletePage = visiblePages.find((page) => !pageCompletion.get(page.id)?.complete);
-  const pageDataPaths = useMemo(() => (selectedPage ? collectDataPaths(selectedPage) : []), [selectedPage]);
+  const pageDataPaths = useMemo(() => (draftSelectedPage ? collectDataPaths(draftSelectedPage) : []), [draftSelectedPage]);
   const pageDraftSnapshot = useMemo(() => JSON.stringify(pageDataPaths.map((path) => [path, getPath(draft, path)])), [draft, pageDataPaths]);
   const savedPageSnapshot = useMemo(() => JSON.stringify(pageDataPaths.map((path) => [path, getPath(evaluated.requestData, path)])), [evaluated.requestData, pageDataPaths]);
-  const selectedCompletion = selectedPage ? pageCompletion.get(selectedPage.id) : undefined;
-  const canSavePage = evaluated.canSave && pageDataPaths.length > 0;
+  const selectedCompletion = draftSelectedPage ? pageCompletion.get(draftSelectedPage.id) : undefined;
+  const canSavePage = draftEvaluation.canSave && pageDataPaths.length > 0;
   const selectedPageHasUnsavedChanges = canSavePage && pageDraftSnapshot !== savedPageSnapshot;
-  const clearAutoSaveTimer = useCallback(() => {
-    if (autoSaveTimer.current) {
-      clearTimeout(autoSaveTimer.current);
-      autoSaveTimer.current = null;
-    }
-  }, []);
+  useEffect(() => {
+    dispatch(setHasUnsavedChanges(selectedPageHasUnsavedChanges));
+  }, [dispatch, selectedPageHasUnsavedChanges]);
   const savePage = useCallback(async () => {
     if (!canSavePage) {
       return false;
     }
+    setOperationError(null);
     try {
       const result = await patchRequest({
         requestCaseId: evaluated.requestCaseId,
         userId,
         updates: pageDataPaths.map((path) => ({ path, value: getPath(draft, path) })),
       }).unwrap() as { success?: boolean };
+      if (result.success !== false) {
+        dispatch(setHasUnsavedChanges(false));
+      } else {
+        setOperationError("Page could not be saved. Try again.");
+      }
       return result.success !== false;
     } catch {
+      setOperationError("Page could not be saved. Try again.");
       return false;
     }
-  }, [canSavePage, draft, evaluated.requestCaseId, pageDataPaths, patchRequest, userId]);
-  useEffect(() => {
-    if (!selectedPageHasUnsavedChanges || save.isLoading) {
-      return clearAutoSaveTimer;
-    }
-    clearAutoSaveTimer();
-    autoSaveTimer.current = setTimeout(() => {
-      autoSaveTimer.current = null;
-      void savePage();
-    }, autoSaveDelayMs);
-    return clearAutoSaveTimer;
-  }, [clearAutoSaveTimer, save.isLoading, savePage, selectedPageHasUnsavedChanges]);
-  const selectPage = (id: string) => {
-    if (selectedPageHasUnsavedChanges) {
-      clearAutoSaveTimer();
-      void savePage();
-    }
-    setSelectedPageId(id);
-  };
-  const runAction = async (actionId: string) => {
-    if (actionId.startsWith("workflow.submit")) {
-      dispatch(enableValidationMode());
-      if (firstIncompletePage) {
-        selectPage(firstIncompletePage.id);
-        return;
-      }
+  }, [canSavePage, dispatch, draft, evaluated.requestCaseId, pageDataPaths, patchRequest, userId]);
+  const selectPage = async (id: string) => {
+    if (id === selectedPageId) {
+      return;
     }
     if (selectedPageHasUnsavedChanges) {
-      clearAutoSaveTimer();
       const saved = await savePage();
       if (!saved) {
         return;
       }
     }
-    await runRequestAction({ requestCaseId: evaluated.requestCaseId, userId, actionId });
+    setSelectedPageId(id);
+  };
+  const runAction = async (actionId: string) => {
+    setOperationError(null);
+    const validationScope = scopeForAction(actionId);
+    if (validationScope) {
+      dispatch(enableValidationMode());
+      const firstIssuePageId = draftEvaluation.validation[validationScope][0]?.pageId;
+      const blockingPage = firstIncompletePage ?? visiblePages.find((page) => page.id === firstIssuePageId);
+      if (blockingPage) {
+        if (actionId !== START_INVESTMENT_REVIEW_ACTION_ID) {
+          void selectPage(blockingPage.id);
+        }
+        return;
+      }
+    }
+    if (selectedPageHasUnsavedChanges) {
+      const saved = await savePage();
+      if (!saved) {
+        return;
+      }
+    }
+    try {
+      await runRequestAction({ requestCaseId: evaluated.requestCaseId, userId, actionId }).unwrap();
+    } catch {
+      setOperationError("Workflow action failed. Try again.");
+    }
   };
 
   return (
@@ -111,7 +135,7 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
             <button
               key={page.id}
               className={`nav-item ${selectedPageId === page.id ? "active" : ""} ${completion?.complete ? "complete" : "incomplete"}`}
-              onClick={() => selectPage(page.id)}
+              onClick={() => void selectPage(page.id)}
               title={completion?.complete ? "Complete" : `${completion?.missingCount ?? 0} required field${completion?.missingCount === 1 ? "" : "s"} missing`}
             >
               <span className="nav-item-label">{page.label}</span>
@@ -122,23 +146,24 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
       </aside>
 
       <section className="min-w-0 space-y-3">
-        <StatusBar evaluated={evaluated} />
-        <WorkflowActions actions={evaluated.workflowActions} runAction={runAction} pending={action.isLoading} />
+        <StatusBar evaluated={{ ...draftEvaluation, pages: draftPages }} />
+        <WorkflowActions actions={draftEvaluation.workflowActions} runAction={runAction} pending={action.isLoading} />
+        {operationError ? <div className="notice danger" role="alert">{operationError}</div> : null}
         {action.data ? <ActionMessage result={action.data as { success: boolean; message: string }} /> : null}
-        {selectedPage && (
+        {draftSelectedPage && (
           <div className="panel content-panel">
             <div className="content-panel-header">
               <div>
                 <p className="text-xs font-medium text-[var(--text-muted)]">Current page</p>
-                <h2 className="mt-1 text-lg font-semibold tracking-[-0.01em]">{selectedPage.label}</h2>
+                <h2 className="mt-1 text-lg font-semibold tracking-[-0.01em]">{draftSelectedPage.label}</h2>
               </div>
               <button className="button" onClick={savePage} disabled={save.isLoading || !canSavePage}>
                 {save.isLoading ? "Saving..." : "Save page"}
               </button>
             </div>
             <div className="content-stack">
-              {(selectedPage.children ?? []).filter((node) => node.visible).map((node) => (
-                <RenderNode key={node.id} node={node} data={draft} setData={(value) => dispatch(setDraft(typeof value === "function" ? value(draft) : value))} userRole={evaluated.user.role} runAction={runAction} missingPaths={selectedCompletion?.missingPaths} validationActive={validationMode} />
+              {(draftSelectedPage.children ?? []).filter((node) => node.visible).map((node) => (
+                <RenderNode key={node.id} node={node} data={draft} setData={(value) => dispatch(setDraft(typeof value === "function" ? value(draft) : value))} userId={evaluated.user.userId} userRole={evaluated.user.role} runAction={runAction} missingPaths={selectedCompletion?.missingPaths} validationActive={validationMode} />
               ))}
             </div>
           </div>
@@ -147,7 +172,7 @@ export const RequestWorkbench = ({ evaluated, selectedPage, selectedPageId, setS
 
       {showEvaluationTrace && (
         <aside className="min-w-0">
-          <TracePanel pages={evaluated.pages} />
+          <TracePanel pages={draftPages} />
         </aside>
       )}
     </div>
@@ -169,3 +194,12 @@ const PageStatusIcon = ({ complete }: { complete: boolean }) => (
     )}
   </span>
 );
+
+const START_INVESTMENT_REVIEW_ACTION_ID = "workflow.startInvestmentReview";
+
+const scopeForAction = (actionId: string): "submit" | "riskSubmit" | "approve" | null => {
+  if (actionId === START_INVESTMENT_REVIEW_ACTION_ID || actionId.startsWith("workflow.submitInvestmentReview") || actionId.startsWith("workflow.approveInvestment")) return "submit";
+  if (actionId.startsWith("workflow.submitRiskReview")) return "riskSubmit";
+  if (actionId.startsWith("workflow.approveRisk")) return "approve";
+  return null;
+};

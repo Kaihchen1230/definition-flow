@@ -15,6 +15,17 @@ const confirmOrReferBack = (): EnumOption[] => [
 ];
 
 export const enumOptions: Record<string, EnumOption[]> = {
+  "approvalRequirements.investmentLevels": [
+    { value: "LEVEL_1", label: "Level 1 — standard authority" },
+    { value: "LEVEL_2", label: "Level 2 — elevated authority" },
+    { value: "LEVEL_3", label: "Level 3 — highest authority" },
+  ],
+  "approvalRequirements.riskLevels": [
+    { value: "LEVEL_1", label: "Level 1 — standard authority" },
+    { value: "LEVEL_2", label: "Level 2 — elevated authority" },
+    { value: "LEVEL_3", label: "Level 3 — senior authority" },
+    { value: "LEVEL_4", label: "Level 4 — highest authority" },
+  ],
   "company.stage": [
     { value: "SEED", label: "Seed" },
     { value: "PRE_REVENUE", label: "Pre-revenue" },

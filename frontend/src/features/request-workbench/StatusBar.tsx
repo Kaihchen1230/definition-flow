@@ -12,10 +12,10 @@ type StatProps = {
 export const StatusBar = ({ evaluated }: StatusBarProps) => {
   return (
     <div className="status-strip">
-      <Stat label="Workflow" value={formatStatusValue(evaluated.workflowState)} />
-      <Stat label="User" value={`${evaluated.user.displayName}`} />
-      <Stat label="Variant" value={formatStatusValue(String(evaluated.derived.investmentVariant ?? "N/A"))} />
-      <Stat label="Approval Route" value={routeStatus(evaluated.calculations.approvalRoute)} />
+      <Stat label="Request stage" value={formatStatusValue(evaluated.workflowState)} />
+      <Stat label="Acting as" value={`${evaluated.user.displayName}`} />
+      <Stat label="Required investment levels" value={approvalLevels(evaluated.requestData.approvalRequirements?.investmentLevels)} />
+      <Stat label="Required risk levels" value={approvalLevels(evaluated.requestData.approvalRequirements?.riskLevels)} />
     </div>
   );
 };
@@ -29,11 +29,9 @@ const Stat = ({ label, value }: StatProps) => {
   );
 };
 
-const routeStatus = (route: any) => {
-  if (!route?.exists) return "Not calculated";
-  if (route.stale) return "Stale";
-  return route.result?.requiredLevels?.map(formatStatusValue).join(", ") ?? "Fresh";
-};
+const approvalLevels = (value: unknown) => Array.isArray(value) && value.length > 0
+  ? [...value].sort().map((level) => formatStatusValue(String(level))).join(" → ")
+  : "Not selected";
 
 const formatStatusValue = (value: string) => {
   if (value === "N/A") {

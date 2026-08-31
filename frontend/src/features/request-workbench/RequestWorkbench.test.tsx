@@ -2,8 +2,10 @@ import { Provider } from "react-redux";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { companyProfilePage } from "../../config/pages/companyProfile";
 import { createStore } from "../../store/store";
 import type { EvaluatedUi } from "../../types/api";
+import { evaluateUiDefinition } from "../../utils/evaluateUiDefinition";
 import { RequestWorkbench } from "./RequestWorkbench";
 
 const evaluatedUi: EvaluatedUi = {
@@ -12,15 +14,20 @@ const evaluatedUi: EvaluatedUi = {
   workflowState: "INVESTMENT_REVIEW",
   user: { userId: "analyst", displayName: "Avery Analyst", role: "InvestmentAnalyst", entitlements: ["EDIT_INVESTMENT_REQUEST"] },
   requestData: {
-    company: { name: "Acme Robotics" },
-    investment: { amount: 6500000 },
+    company: { name: "Acme Robotics", stage: "SEED", sector: "AI", foundedDate: "2024-01-01", incorporated: "YES" },
+    investment: { amount: 6500000, instrument: "SAFE", useOfFunds: "Growth" },
+    approvalRequirements: { investmentLevels: ["LEVEL_3"] },
+    founders: [{ name: "Mina", title: "CEO", ownershipPercent: 60, backgroundCheck: "YES" }],
+    exceptions: [],
     internal: { note: "Hidden from this user" },
   },
   derived: { investmentVariant: "HIGH_RISK" },
-  calculations: { approvalRoute: { exists: false, stale: true } },
+  calculations: {},
   definitionVersions: {},
   canSave: true,
-  ruleResults: {},
+  ruleResults: {
+    showInternalNote: { result: false, trace: [] },
+  },
   pages: [
     {
       id: "investmentTerms",
@@ -57,7 +64,7 @@ const evaluatedUi: EvaluatedUi = {
           visible: false,
           enabled: true,
           disabled: false,
-          visibleRule: null,
+          visibleRule: "showInternalNote",
           enabledRule: null,
           required: false,
           requiredRule: null,
@@ -67,8 +74,9 @@ const evaluatedUi: EvaluatedUi = {
   ],
   workflowActions: [
     {
-      id: "workflow.submitInvestmentReview",
-      label: "Submit for investment approval",
+      id: "workflow.submitInvestmentReviewLevel3",
+      label: "Submit to Investment Level 3",
+      enabledRule: "canSubmitInvestmentLevel3",
       visible: true,
       enabled: true,
       disabled: false,
@@ -78,10 +86,10 @@ const evaluatedUi: EvaluatedUi = {
     render: [],
     submit: [
       {
-        ruleId: "approvalRouteMustBeFresh",
+        ruleId: "investmentApprovalLevelRequired",
         severity: "blocking",
-        message: "Approval route must be calculated before submit.",
-        path: "calculations.approvalRoute.exists",
+        message: "Select the required investment approver level.",
+        path: "investmentApprovalLevel",
       },
     ],
     riskSubmit: [],
@@ -95,6 +103,7 @@ const renderWorkbench = () => {
     <Provider store={store}>
       <RequestWorkbench
         evaluated={evaluatedUi}
+        pagesConfig={evaluatedUi.pages}
         selectedPage={evaluatedUi.pages[0]}
         selectedPageId="investmentTerms"
         setSelectedPageId={vi.fn()}
@@ -104,16 +113,17 @@ const renderWorkbench = () => {
   );
 };
 
-const renderWorkbenchWith = (ui: EvaluatedUi, selectedPageId = ui.pages[0].id) => {
+const renderWorkbenchWith = (ui: EvaluatedUi, selectedPageId = ui.pages[0].id, setSelectedPageId = vi.fn()) => {
   const store = createStore();
   return render(
     <Provider store={store}>
       <RequestWorkbench
         evaluated={ui}
+        pagesConfig={ui.pages}
         selectedPage={ui.pages.find((page) => page.id === selectedPageId)}
         selectedPageId={selectedPageId}
-        setSelectedPageId={vi.fn()}
-        userId="analyst"
+        setSelectedPageId={setSelectedPageId}
+        userId={ui.user.userId}
       />
     </Provider>
   );
@@ -137,7 +147,7 @@ describe("RequestWorkbench validation mode", () => {
 
     expect(screen.queryByText("Blocking validation summary")).toBeNull();
 
-    await user.click(screen.getByRole("button", { name: "Submit for investment approval" }));
+    await user.click(screen.getByRole("button", { name: "Submit to Investment Level 3" }));
 
     expect(await screen.findByText(/Blocking validations must be resolved\./)).toBeTruthy();
     expect(screen.queryByText("Blocking validation summary")).toBeNull();
@@ -146,6 +156,7 @@ describe("RequestWorkbench validation mode", () => {
   it("saves only data paths from the selected page", async () => {
     const user = userEvent.setup();
     const requestBodies: any[] = [];
+    const frontendRuleCatalogVersions: Array<string | null> = [];
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input, init) => {
@@ -153,6 +164,7 @@ describe("RequestWorkbench validation mode", () => {
         const method = request?.method ?? init?.method;
         if (method === "PATCH") {
           requestBodies.push(request ? await request.clone().json() : JSON.parse(init?.body as string));
+          frontendRuleCatalogVersions.push(request?.headers.get("X-Frontend-Rule-Catalog-Version") ?? null);
         }
         return new Response(JSON.stringify({ success: true, message: "Saved", details: {} }));
       })
@@ -166,11 +178,49 @@ describe("RequestWorkbench validation mode", () => {
     expect(requestBodies[0]).toEqual({
       updates: [{ path: "company.name", value: "Acme Robotics" }],
     });
+    expect(frontendRuleCatalogVersions).toEqual(["startup-investment-rules-v5"]);
   });
 
-  it("auto-saves changed data paths from the selected page", async () => {
+  it("shows a visible error when the current page cannot be saved", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ message: "Failed" }, { status: 500 })));
+
+    renderWorkbench();
+
+    await user.click(screen.getByRole("button", { name: "Save page" }));
+
+    expect(await screen.findByText("Page could not be saved. Try again.")).toBeTruthy();
+  });
+
+  it("shows a visible error when a workflow action fails", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ message: "Failed" }, { status: 500 })));
+
+    renderWorkbench();
+
+    await user.click(screen.getByRole("button", { name: "Submit to Investment Level 3" }));
+
+    expect(await screen.findByText("Workflow action failed. Try again.")).toBeTruthy();
+  });
+
+  it("does not save page changes on a debounce timer", async () => {
     vi.useFakeTimers();
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ success: true, message: "Saved", details: {} })));
+    vi.stubGlobal("fetch", fetch);
+
+    renderWorkbench();
+
+    fireEvent.change(screen.getByDisplayValue("Acme Robotics"), { target: { value: "Acme Labs" } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("saves changed data paths before navigating to another page", async () => {
     const requestBodies: any[] = [];
+    const setSelectedPageId = vi.fn();
     vi.stubGlobal(
       "fetch",
       vi.fn(async (input, init) => {
@@ -183,17 +233,72 @@ describe("RequestWorkbench validation mode", () => {
       })
     );
 
-    renderWorkbench();
+    const ui: EvaluatedUi = {
+      ...evaluatedUi,
+      pages: [
+        ...evaluatedUi.pages,
+        {
+          id: "companyProfile",
+          type: "page",
+          label: "Company Profile",
+          visible: true,
+          enabled: true,
+          disabled: false,
+          visibleRule: null,
+          enabledRule: null,
+          required: false,
+          requiredRule: null,
+          children: [],
+        },
+      ],
+    };
+    renderWorkbenchWith(ui, "investmentTerms", setSelectedPageId);
 
     fireEvent.change(screen.getByDisplayValue("Acme Robotics"), { target: { value: "Acme Labs" } });
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(600);
-    });
+    fireEvent.click(screen.getByRole("button", { name: /Company Profile/ }));
 
-    expect(requestBodies).toHaveLength(1);
+    await waitFor(() => expect(requestBodies).toHaveLength(1));
     expect(requestBodies[0]).toEqual({
       updates: [{ path: "company.name", value: "Acme Labs" }],
     });
+    expect(setSelectedPageId).toHaveBeenCalledWith("companyProfile");
+  });
+
+  it("shows and requires a refer-back note immediately from draft data", async () => {
+    const user = userEvent.setup();
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ success: true, message: "Saved", details: {} })));
+    vi.stubGlobal("fetch", fetch);
+    const riskContext = {
+      ...evaluatedUi,
+      workflowState: "RISK_REVIEW",
+      user: { userId: "risk-officer", displayName: "Riley Risk Officer", role: "RiskOfficer", entitlements: ["EDIT_RISK_REVIEW"] },
+      requestData: {
+        ...evaluatedUi.requestData,
+        risk: {
+          pageConfirmations: { companyProfile: "CONFIRMED" },
+          pageConfirmationNotes: { companyProfile: "" },
+        },
+      },
+      ruleResults: {
+        canEditInvestmentReview: { result: false, trace: [] },
+        canEditRiskReview: { result: true, trace: [] },
+        showRiskOfficerConfirmations: { result: true, trace: [] },
+      },
+    };
+    const ui: EvaluatedUi = {
+      ...riskContext,
+      pages: evaluateUiDefinition([companyProfilePage], riskContext),
+    };
+
+    renderWorkbenchWith(ui, "companyProfile");
+
+    expect(screen.queryByLabelText(/Reason for referring the company profile back/)).toBeNull();
+    await user.click(screen.getByRole("radio", { name: "Refer back" }));
+
+    const note = screen.getByLabelText(/Reason for referring the company profile back/);
+    expect(note).toBeTruthy();
+    expect(note.closest("label")?.textContent).toContain("Reason for referring the company profile back *");
+    expect(fetch).not.toHaveBeenCalled();
   });
 
   it("flushes pending page changes before running a workflow action", async () => {
@@ -212,7 +317,7 @@ describe("RequestWorkbench validation mode", () => {
 
     await user.clear(screen.getByDisplayValue("Acme Robotics"));
     await user.type(screen.getByRole("textbox", { name: /Company name/ }), "Acme Labs");
-    await user.click(screen.getByRole("button", { name: "Submit for investment approval" }));
+    await user.click(screen.getByRole("button", { name: "Submit to Investment Level 3" }));
 
     await waitFor(() => expect(methods).toEqual(["PATCH", "POST"]));
   });
@@ -262,9 +367,82 @@ describe("RequestWorkbench validation mode", () => {
 
     renderWorkbenchWith(ui, "foundersOwnership");
 
-    await user.click(screen.getByRole("button", { name: "Submit for investment approval" }));
+    await user.click(screen.getByRole("button", { name: "Submit to Investment Level 3" }));
 
     expect(screen.getByLabelText("Founder name").getAttribute("aria-invalid")).toBe("true");
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("does not start investment review or leave the open page while another visible page is incomplete", async () => {
+    const user = userEvent.setup();
+    const fetch = vi.fn(async () => new Response(JSON.stringify({ success: true, message: "Started", details: {} })));
+    const setSelectedPageId = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    const ui: EvaluatedUi = {
+      ...evaluatedUi,
+      workflowState: "DRAFT",
+      requestData: { company: { name: "" } },
+      workflowActions: [
+        {
+          id: "workflow.startInvestmentReview",
+          label: "Start investment review",
+          enabledRule: "canEditInvestmentReview",
+          visible: true,
+          enabled: true,
+          disabled: false,
+        },
+      ],
+      pages: [
+        {
+          id: "companyProfile",
+          type: "page",
+          label: "Company Profile",
+          visible: true,
+          enabled: true,
+          disabled: false,
+          visibleRule: null,
+          enabledRule: null,
+          required: false,
+          requiredRule: null,
+          children: [
+            {
+              id: "companyName",
+              type: "field",
+              component: "textInput",
+              label: "Company name",
+              dataPath: "company.name",
+              visible: true,
+              enabled: true,
+              disabled: false,
+              visibleRule: null,
+              enabledRule: null,
+              required: true,
+              requiredRule: null,
+            },
+          ],
+        },
+        {
+          id: "investmentTerms",
+          type: "page",
+          label: "Investment Terms",
+          visible: true,
+          enabled: true,
+          disabled: false,
+          visibleRule: null,
+          enabledRule: null,
+          required: false,
+          requiredRule: null,
+          children: [],
+        },
+      ],
+    };
+
+    renderWorkbenchWith(ui, "investmentTerms", setSelectedPageId);
+
+    await user.click(screen.getByRole("button", { name: "Start investment review" }));
+
+    expect(screen.getByRole("heading", { name: "Investment Terms" })).toBeTruthy();
+    expect(setSelectedPageId).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();
   });
 

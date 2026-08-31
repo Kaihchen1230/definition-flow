@@ -1,6 +1,5 @@
 package com.example.approvalpoc.calculation;
 
-import com.example.approvalpoc.rules.DefaultRuleEvaluator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,14 +19,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class CalculationService {
     private final CalculationResultRepository repository;
+    private final CalculationEngine calculationEngine;
     private final ObjectMapper objectMapper;
 
-    public CalculationService(CalculationResultRepository repository, ObjectMapper objectMapper) {
+    public CalculationService(CalculationResultRepository repository, CalculationEngine calculationEngine, ObjectMapper objectMapper) {
         this.repository = repository;
+        this.calculationEngine = calculationEngine;
         this.objectMapper = objectMapper;
     }
 
-    public JsonNode calculationContext(UUID requestCaseId, JsonNode calculationDefinition, JsonNode context) {
+    public JsonNode calculationContext(UUID requestCaseId, String requestType, JsonNode calculationDefinition, JsonNode context) {
         ObjectNode calculations = objectMapper.createObjectNode();
         Iterator<Map.Entry<String, JsonNode>> fields = calculationDefinition.path("calculations").fields();
         while (fields.hasNext()) {
@@ -41,14 +42,17 @@ public class CalculationService {
                         node.set("result", readJson(result.getResultJson()));
                         node.put("calculatedAt", result.getCalculatedAt().toString());
                         node.put("calculatedBy", result.getCalculatedBy());
-                        String currentHash = dependencyHash(definition, context);
-                        boolean stale = !currentHash.equals(result.getInputHash());
+                        node.put("engineId", result.getEngineId());
+                        node.put("ruleSetVersion", result.getRuleSetVersion());
+                        boolean inputsChanged = !dependencyHash(definition, context).equals(result.getInputHash());
+                        boolean ruleSetChanged = !calculationEngine.currentRuleSetVersion(requestType, calculationId, definition).equals(result.getRuleSetVersion());
+                        boolean stale = inputsChanged || ruleSetChanged;
                         node.put("stale", stale);
-                        node.set("staleReasons", stale ? staleReasons(definition) : objectMapper.createArrayNode());
+                        node.set("staleReasons", stale ? staleReasons(definition, inputsChanged, ruleSetChanged) : objectMapper.createArrayNode());
                     }, () -> {
                         node.put("exists", false);
                         node.put("stale", true);
-                        node.set("staleReasons", staleReasons(definition));
+                        node.set("staleReasons", staleReasons(definition, true, false));
                     });
             calculations.set(calculationId, node);
         }
@@ -56,44 +60,19 @@ public class CalculationService {
     }
 
     @Transactional
-    public CalculationResultEntity calculateApprovalRoute(UUID requestCaseId, String userId, JsonNode calculationDefinition, JsonNode context) {
-        JsonNode definition = calculationDefinition.path("calculations").path("approvalRoute");
-        int amount = context.path("requestData").path("investment").path("amount").asInt(0);
-        String variant = context.path("derived").path("investmentVariant").asText("STANDARD");
-        ArrayNode levels = objectMapper.createArrayNode();
-        boolean enhancedRisk = amount >= 5_000_000 || variant.equals("HIGH_RISK");
-        levels.add("INVESTMENT_APPROVER");
-        levels.add("RISK_OFFICER");
-        levels.add("RISK_APPROVER");
-        ObjectNode result = objectMapper.createObjectNode();
-        result.set("requiredLevels", levels);
-        result.put("variantUsed", variant);
-        result.put("amountUsed", amount);
-        result.put("routeType", enhancedRisk ? "ENHANCED_RISK_CHAIN" : "STANDARD_APPROVAL_CHAIN");
-        result.put("routingReason", routingReason(context, amount));
-
+    public CalculationResultEntity calculate(UUID requestCaseId, String userId, String requestType, String calculationId, JsonNode calculationDefinition, JsonNode context) {
+        JsonNode definition = calculationDefinition.path("calculations").path(calculationId);
+        CalculationEngineResult engineResult = calculationEngine.calculate(requestType, calculationId, definition, context);
         String inputHash = dependencyHash(definition, context);
-        CalculationResultEntity entity = repository.findFirstByRequestCaseIdAndCalculationIdOrderByCalculatedAtDesc(requestCaseId, "approvalRoute")
-                .orElseGet(() -> new CalculationResultEntity(requestCaseId, "approvalRoute", "{}", inputHash, userId, Instant.now()));
-        entity.setResultJson(writeJson(result));
+        CalculationResultEntity entity = repository.findFirstByRequestCaseIdAndCalculationIdOrderByCalculatedAtDesc(requestCaseId, calculationId)
+                .orElseGet(() -> new CalculationResultEntity(requestCaseId, calculationId, "{}", inputHash, userId, Instant.now()));
+        entity.setResultJson(writeJson(engineResult.result()));
         entity.setInputHash(inputHash);
+        entity.setEngineId(engineResult.engineId());
+        entity.setRuleSetVersion(engineResult.ruleSetVersion());
         entity.setCalculatedBy(userId);
         entity.setCalculatedAt(Instant.now());
         return repository.save(entity);
-    }
-
-    private String routingReason(JsonNode context, int amount) {
-        if (amount >= 5_000_000) {
-            return "Investment amount is at least $5M.";
-        }
-        String stage = context.path("requestData").path("company").path("stage").asText();
-        if (stage.equals("SEED") || stage.equals("PRE_REVENUE")) {
-            return "Company is Seed or Pre-revenue stage.";
-        }
-        if (context.path("requestData").path("risk").path("hasMaterialException").asBoolean(false)) {
-            return "Request has a material exception.";
-        }
-        return "Growth or Late-stage request below $5M with no material exception.";
     }
 
     public String dependencyHash(JsonNode calculationDefinition, JsonNode context) {
@@ -105,10 +84,15 @@ public class CalculationService {
         return sha256(writeJson(snapshot));
     }
 
-    private ArrayNode staleReasons(JsonNode definition) {
+    private ArrayNode staleReasons(JsonNode definition, boolean includeDependencies, boolean includeRuleSetVersion) {
         ArrayNode reasons = objectMapper.createArrayNode();
-        for (JsonNode dependency : definition.path("dependsOn")) {
-            reasons.add(dependency.asText());
+        if (includeDependencies) {
+            for (JsonNode dependency : definition.path("dependsOn")) {
+                reasons.add(dependency.asText());
+            }
+        }
+        if (includeRuleSetVersion) {
+            reasons.add("calculationRuleSetVersion");
         }
         return reasons;
     }

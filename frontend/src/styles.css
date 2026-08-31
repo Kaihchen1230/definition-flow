@@ -106,6 +106,232 @@ body {
   gap: 8px;
 }
 
+.intake-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.72fr) minmax(520px, 1.28fr);
+  gap: clamp(32px, 6vw, 88px);
+  align-items: start;
+  width: min(1120px, 100%);
+  margin: clamp(42px, 8vh, 96px) auto 0;
+  padding: 0 clamp(4px, 2vw, 24px) 72px;
+}
+
+.intake-intro {
+  padding-top: 18px;
+}
+
+.intake-intro h2 {
+  max-width: 12ch;
+  font-size: clamp(2.5rem, 5vw, 4.6rem);
+  font-weight: 720;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+}
+
+.intake-intro > p:first-of-type {
+  max-width: 46ch;
+  margin-top: 22px;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.intake-journey {
+  display: grid;
+  gap: 0;
+  margin: 36px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.intake-journey li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  gap: 12px;
+  min-height: 68px;
+  color: var(--text-muted);
+}
+
+.intake-journey li:not(:last-child)::after {
+  position: absolute;
+  top: 30px;
+  bottom: 2px;
+  left: 14px;
+  width: 1px;
+  background: var(--line-strong);
+  content: "";
+}
+
+.intake-journey li > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 29px;
+  height: 29px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--app-bg);
+  font-size: 12px;
+  font-weight: 750;
+  font-variant-numeric: tabular-nums;
+  z-index: 1;
+}
+
+.intake-journey li.active {
+  color: var(--accent-strong);
+}
+
+.intake-journey li.active > span {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
+  color: white;
+}
+
+.intake-journey strong,
+.intake-journey small {
+  display: block;
+}
+
+.intake-journey strong {
+  color: currentColor;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.intake-journey small {
+  margin-top: 3px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.intake-footnote {
+  max-width: 48ch;
+  margin-top: 8px;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.intake-form {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface-raised);
+  overflow: hidden;
+}
+
+.intake-form-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 26px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.intake-form-head h3 {
+  font-size: 20px;
+  font-weight: 740;
+  letter-spacing: -0.02em;
+}
+
+.intake-form-head p {
+  margin-top: 5px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.draft-chip {
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.intake-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px 18px;
+  padding: 26px;
+}
+
+.intake-field-companyName,
+.intake-field-companyIncorporated {
+  grid-column: 1 / -1;
+}
+
+.intake-form .field > em {
+  min-height: 18px;
+}
+
+.intake-guidance {
+  margin: 0 26px 18px;
+  color: var(--danger);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.intake-form > .notice {
+  margin: 0 26px 18px;
+}
+
+.intake-submit-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 26px;
+  border-top: 1px solid var(--line);
+}
+
+.intake-submit-row p {
+  max-width: 34ch;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.intake-submit {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding-inline: 18px;
+}
+
+.intake-submit svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .intake-form {
+    animation: intake-arrive 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+@keyframes intake-arrive {
+  from {
+    transform: translateY(10px);
+    opacity: 0.7;
+    filter: blur(2px);
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
 .workbench-grid {
   display: grid;
   grid-template-columns: 230px minmax(0, 1fr) 360px;
@@ -744,5 +970,65 @@ body {
 
   .choice-grid {
     grid-template-columns: 1fr;
+  }
+
+  .intake-layout {
+    grid-template-columns: 1fr;
+    gap: 30px;
+    margin-top: 28px;
+    padding-bottom: 40px;
+  }
+
+  .intake-intro {
+    padding-top: 0;
+  }
+
+  .intake-intro h2 {
+    max-width: 14ch;
+    font-size: clamp(2.4rem, 12vw, 3.8rem);
+  }
+
+  .intake-journey {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 28px;
+  }
+
+  .intake-journey li {
+    display: block;
+    min-height: auto;
+  }
+
+  .intake-journey li:not(:last-child)::after {
+    display: none;
+  }
+
+  .intake-journey li > div {
+    margin-top: 9px;
+  }
+
+  .intake-fields {
+    grid-template-columns: 1fr;
+    padding: 22px;
+  }
+
+  .intake-field-companyName,
+  .intake-field-companyIncorporated {
+    grid-column: auto;
+  }
+
+  .intake-form-head,
+  .intake-submit-row {
+    padding-inline: 22px;
+  }
+
+  .intake-submit-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .intake-submit {
+    justify-content: center;
+    width: 100%;
   }
 }

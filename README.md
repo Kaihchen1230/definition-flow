@@ -4,27 +4,33 @@ This repository is a proof of concept for turning an approval workflow applicati
 
 The POC uses a startup investment approval scenario to demonstrate:
 
-- modular backend YAML definitions for data schema, rules, derived facts, calculations, and workflow
-- frontend-owned typed UI layout config, required-field metadata, and page completion indicators
+- modular backend YAML definitions for data schema, calculations, and workflow topology
+- frontend-owned typed rules, validation, derived facts, UI layout config, and page completion indicators
 - a Java Spring Boot backend as a modular monolith
 - Postgres as the target persistence mode, with H2 as a convenience fallback
 - a React/Vite frontend using Redux Toolkit and RTK Query
-- a React renderer owning static UI layout while consuming backend-evaluated rule results
-- backend-authoritative rules, validation, actions, workflow transitions, calculation stale tracking, and audit
+- a React renderer evaluating the rule catalog immediately against the unsaved draft
+- backend-owned persistence, workflow state mutation, and audit
+- analyst-selected investment approval levels (three tiers) and risk-officer-selected risk approval levels (four tiers)
 - page-scoped request data saves that patch only the current page's data paths
+- a config-driven Company Profile intake that creates an empty request only after validation, then applies the first page-scoped patch
+
+Teams adapting this POC should start with the [Frontend Reference Implementation Guide](docs/frontend-reference-guide.md), which identifies the reusable evaluator/workbench modules, the domain-specific replacement points, and the trusted-frontend constraint.
+
+The [Calculation Engine Integration](docs/calculation-engine-integration.md) documents the retained adapter seam for future lending-rule-engine calculations. Approval routing in the active scenario is intentionally manual.
 
 ## Repository Shape
 
 ```text
 backend/                         Spring Boot modular monolith
 frontend/                        React/Vite renderer with Redux Toolkit and RTK Query
-definitions/startup-investment/  Backend-owned YAML definitions
+definitions/startup-investment/  Backend-owned schema, calculation, and workflow YAML
 docs/                            Proposal and rule DSL spec
 scripts/                         Local helper scripts
 docker-compose.yml               Optional Postgres runtime
 ```
 
-The backend keeps request-case API endpoints under `requestcase/api` and builds the trusted request evaluation context under `requestcase/evaluation`; frontend UI layout evaluation stays in `frontend/src/config` and `frontend/src/utils`.
+The backend returns raw request, user, calculation, and available-transition IDs. The frontend owns the business-rule catalog and action-to-rule assignments in `frontend/src/rules`, evaluates them against the current Redux draft, and applies the results to the UI config in `frontend/src/config`.
 
 ## Frontend Shape
 
@@ -36,6 +42,7 @@ frontend/src/features/request-workbench/  Request workbench panels and local UI 
 frontend/src/features/request-renderer/   Dynamic field, collection, and action renderers
 frontend/src/config/                      Static frontend config, enum options, and UI layout assembly
 frontend/src/config/pages/                One frontend-owned UI config module per request page
+frontend/src/rules/                       Business-rule config, DSL evaluator, and context evaluation
 frontend/src/types/                       Shared API response types
 frontend/src/utils/                       Generic helpers
 ```
@@ -44,9 +51,9 @@ frontend/src/utils/                       Generic helpers
 
 DSL stands for Domain-Specific Language. It is a small language designed for one problem area instead of a general-purpose programming language like Java or TypeScript.
 
-In this POC, the rule DSL is the YAML format used to describe approval-platform decisions in a predictable, non-code way. For example, `rules.yaml` can say that a user may approve a request only when the workflow is in the right state and the user has the right entitlement.
+In this POC, the rule DSL is a typed TypeScript object format used to describe approval-platform decisions predictably. For example, `startupInvestmentRules.ts` says that a user may approve only when the workflow is in the right state and the user has the right entitlement.
 
-That lets the platform evaluate rules consistently for UI behavior, validation, workflow actions, calculations, and audit without hardcoding every approval scenario into application code.
+One frontend evaluator handles boolean composition, predicates, named references, and per-item collection rules for UI behavior, validation, workflow actions, and derived facts. The backend intentionally does not duplicate this evaluator for the internal-app POC.
 
 ## Local Runtime Options
 
@@ -104,16 +111,18 @@ npm run build
 The POC currently includes:
 
 1. Versioned YAML definition loading through the backend.
-2. Demo users and three seeded startup investment request cases covering standard, high-value/early-stage, and material-exception routing.
-3. Predicate rule evaluation with rule references and trace output.
-4. Derived fact evaluation.
-5. Approval route calculation with dependency-hash stale tracking.
-6. Structured validation buckets for render, submit, and approve.
-7. Backend evaluation context endpoint with trusted rule results, validation, workflow actions, and request data.
-8. Page-scoped save patching plus calculate, submit, approve, decline, and withdraw action endpoints.
-9. Redux Toolkit/RTK Query frontend state and backend API integration.
-10. Frontend-owned UI layout with page navigation, page-scoped saves, editable fields/tables/lists, inline required-field validation, add/remove collection controls, workflow actions, and optional rule trace panel.
-11. Baseline backend API integration tests and frontend UI behavior tests.
+2. Demo users and three seeded startup investment request cases with different analyst-selected investment tiers; risk tiers begin blank for the risk officer to choose.
+3. Frontend predicate rule evaluation with rule references, collection scoping, and trace output.
+4. Immediate frontend derived-fact and draft validation evaluation.
+5. Manual multi-level approval sequences across three investment levels and four risk levels; a replaceable calculation-engine seam remains available for future non-routing calculations.
+6. Frontend-owned structured validation buckets for render, investment submit, risk submit, and final approve.
+7. Backend evaluation context endpoint with raw request/user/calculation data and available workflow transition IDs.
+8. Page-scoped save patching plus level-specific submit/approve, decline, and withdraw action endpoints.
+9. Empty draft request creation with no pre-populated page data.
+10. Redux Toolkit/RTK Query frontend state and backend API integration.
+11. Frontend-owned UI layout with page navigation, page-scoped saves, editable fields/tables/lists, inline required-field validation, add/remove collection controls, workflow actions, and optional rule trace panel.
+12. Backend audit metadata linking mutations to the compiled frontend rule-catalog version.
+13. Backend API integration tests plus frontend operator, rule-catalog, and UI behavior tests.
 
 ## Demo Flow
 
@@ -121,21 +130,20 @@ The POC currently includes:
 2. Run `./scripts/load-definitions.sh startup-investment`.
 3. Run `./scripts/reset-demo-data.sh`.
 4. Start frontend with `npm run dev`.
-5. Choose one of the three demo requests from the request selector.
-6. Use `Avery Analyst` to calculate the approval route.
-7. Submit to `Iris Investment Approver`, approve the investment review, and continue to risk review.
-8. Switch to `Riley Risk Officer`, complete risk-only inputs and page confirmations, refresh the route after risk changes, and submit.
-9. Switch to `Reese Risk Approver` and approve the final request.
+5. Complete the Company Profile intake and choose **Create request**; the frontend creates the empty backend request, saves the first page, and opens the workbench. Use the request selector to open one of the three demo scenarios instead.
+6. Use `Avery Analyst` to complete the request and select one or more of the three investment approval levels.
+7. Submit and switch through the selected investment approvers in ascending order.
+8. Switch to `Riley Risk Officer`, complete risk-only inputs and page confirmations, and select one or more of the four risk approval levels.
+9. Submit and switch through the selected risk approvers in ascending order to complete the request.
 
-## Approval Routing Logic
+## Approval Requirement Logic
 
-Every request follows the same approval chain:
+Every request follows the same review phases:
 
-`INVESTMENT_ANALYST → INVESTMENT_APPROVER → RISK_OFFICER → RISK_APPROVER → APPROVED`
+`INVESTMENT_ANALYST → SELECTED INVESTMENT LEVEL → RISK_OFFICER → SELECTED RISK LEVEL → APPROVED`
 
-The calculation determines the risk-review requirements, not whether risk review is skipped:
+The investment analyst selects any combination of three investment authority tiers. The risk officer later selects any combination of four risk authority tiers. Every selected tier approves once in ascending order, while gaps are allowed—for example, L1 + L3 skips L2. The POC does not compute either sequence.
 
-- Standard chain: Growth or Late-stage request below $5M with no material exception.
-- Enhanced-risk chain: amount is at least $5M, company stage is Seed or Pre-revenue, or the request has a material exception.
+The derived Standard/High Risk variant remains a frontend UI and validation input for enhanced risk review; it no longer chooses an approver.
 
 Investment Analysts never receive risk-only fields. Risk inputs, risk-authored exceptions, page confirmations, and refer-back notes appear only to Risk Officers after the request enters `RISK_REVIEW`.

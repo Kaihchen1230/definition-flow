@@ -35,8 +35,6 @@ public class DefinitionLoaderService {
 
         Map<DefinitionModuleType, String> files = Map.of(
                 DefinitionModuleType.DATA_SCHEMA, "data-schema.yaml",
-                DefinitionModuleType.RULES, "rules.yaml",
-                DefinitionModuleType.DERIVED_FACTS, "derived-facts.yaml",
                 DefinitionModuleType.CALCULATIONS, "calculations.yaml",
                 DefinitionModuleType.WORKFLOW, "workflow.yaml"
         );

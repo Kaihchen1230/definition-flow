@@ -32,7 +32,7 @@ export const FoundersTable = ({ node, data, setData, missingPaths = new Set(), v
       <div className="section-head">
         <div>
           <h3>{node.label}</h3>
-          <p>{founders.length} founder record{founders.length === 1 ? "" : "s"} in scope. All table fields are required.</p>
+          <p>{founders.length === 0 ? "No founders added. Add at least one founder and complete all fields." : `${founders.length} founder${founders.length === 1 ? "" : "s"} added. Complete all fields.`}</p>
         </div>
         <button className="button secondary" disabled={disabled} onClick={addFounder}>
           Add founder
@@ -45,7 +45,7 @@ export const FoundersTable = ({ node, data, setData, missingPaths = new Set(), v
               <th>Name</th>
               <th>Title</th>
               <th>Ownership %</th>
-              <th>Background</th>
+              <th>Background check completed?</th>
               <th className="action-column">Actions</th>
             </tr>
           </thead>
@@ -59,10 +59,10 @@ export const FoundersTable = ({ node, data, setData, missingPaths = new Set(), v
                   <input className={inputClass(`founders.${index}.title`)} aria-invalid={missing(index, "title")} aria-label="Founder title" value={founder.title ?? ""} disabled={disabled} onChange={(event) => update(index, "title", event.target.value)} />
                 </td>
                 <td>
-                  <input className={inputClass(`founders.${index}.ownershipPercent`, "numeric")} aria-invalid={missing(index, "ownershipPercent")} aria-label="Ownership percent" type="number" value={founder.ownershipPercent ?? ""} disabled={disabled} onChange={(event) => update(index, "ownershipPercent", event.target.value === "" ? "" : Number(event.target.value))} />
+                  <input className={inputClass(`founders.${index}.ownershipPercent`, "numeric")} aria-invalid={missing(index, "ownershipPercent")} aria-label="Ownership percent" type="number" min={node.itemConstraints?.ownershipPercent?.min} max={node.itemConstraints?.ownershipPercent?.max} step={node.itemConstraints?.ownershipPercent?.step} value={founder.ownershipPercent ?? ""} disabled={disabled} onChange={(event) => update(index, "ownershipPercent", event.target.value === "" ? "" : Number(event.target.value))} />
                 </td>
                 <td>
-                  <select className={inputClass(`founders.${index}.backgroundCheck`)} aria-invalid={missing(index, "backgroundCheck")} aria-label="Background check" value={founder.backgroundCheck ?? ""} disabled={disabled} onChange={(event) => update(index, "backgroundCheck", event.target.value)}>
+                  <select className={inputClass(`founders.${index}.backgroundCheck`)} aria-invalid={missing(index, "backgroundCheck")} aria-label="Background check completed?" value={founder.backgroundCheck ?? ""} disabled={disabled} onChange={(event) => update(index, "backgroundCheck", event.target.value)}>
                     <option value="">Select</option>
                     {yesNoNa().map((option) => <option value={option.value} key={option.value}>{option.label}</option>)}
                   </select>

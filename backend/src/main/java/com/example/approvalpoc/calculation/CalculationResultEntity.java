@@ -18,6 +18,8 @@ public class CalculationResultEntity {
     private String calculationId;
     private String resultJson;
     private String inputHash;
+    private String engineId;
+    private String ruleSetVersion;
     private String calculatedBy;
     private Instant calculatedAt;
 
@@ -61,6 +63,22 @@ public class CalculationResultEntity {
         this.inputHash = inputHash;
     }
 
+    public String getEngineId() {
+        return engineId;
+    }
+
+    public void setEngineId(String engineId) {
+        this.engineId = engineId;
+    }
+
+    public String getRuleSetVersion() {
+        return ruleSetVersion;
+    }
+
+    public void setRuleSetVersion(String ruleSetVersion) {
+        this.ruleSetVersion = ruleSetVersion;
+    }
+
     public String getCalculatedBy() {
         return calculatedBy;
     }
@@ -77,4 +95,3 @@ public class CalculationResultEntity {
         this.calculatedAt = calculatedAt;
     }
 }
-

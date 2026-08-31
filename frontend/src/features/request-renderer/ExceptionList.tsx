@@ -5,12 +5,17 @@ type ExceptionListProps = {
   node: UiNode;
   data: Record<string, any>;
   setData: Dispatch<SetStateAction<Record<string, any>>>;
+  userId: string;
   userRole: string;
+  missingPaths?: Set<string>;
+  validationActive?: boolean;
 };
 
-export const ExceptionList = ({ node, data, setData, userRole }: ExceptionListProps) => {
+export const ExceptionList = ({ node, data, setData, userId, userRole, missingPaths, validationActive }: ExceptionListProps) => {
   const exceptions = Array.isArray(data.exceptions) ? data.exceptions : [];
-  const visible = exceptions.filter((item: any) => item.createdBy?.role === node.filter?.value);
+  const visible = exceptions
+    .map((item: any, index: number) => ({ item, index }))
+    .filter(({ item }) => item.createdBy?.role === node.filter?.value);
   const disabled = node.disabled;
   const update = (id: string, patch: Record<string, any>) => {
     setData((current) => ({
@@ -24,7 +29,7 @@ export const ExceptionList = ({ node, data, setData, userRole }: ExceptionListPr
       ...current,
       exceptions: [
         ...exceptions,
-        { id: `ex-${Date.now()}`, description: "", severity: "MEDIUM", createdBy: { userId: role, role }, riskConfirmation: "" },
+        { id: `ex-${Date.now()}`, description: "", severity: "MEDIUM", createdBy: { userId, role }, riskConfirmation: "" },
       ],
     }));
   };
@@ -40,44 +45,63 @@ export const ExceptionList = ({ node, data, setData, userRole }: ExceptionListPr
       <div className="section-head">
         <div>
           <h3>{node.label}</h3>
-          <p>{visible.length} visible exception{visible.length === 1 ? "" : "s"} for this role</p>
+          <p>{visible.length === 0 ? "No exceptions added." : `${visible.length} exception${visible.length === 1 ? "" : "s"} added.`}</p>
         </div>
         {(node.actions ?? []).filter((action) => action.visible).map((action) => (
           <button key={action.id} className="button secondary" disabled={action.disabled} onClick={addException}>Add exception</button>
         ))}
       </div>
       <div className="exception-stack">
-        {visible.map((item: any) => (
+        {visible.map(({ item, index }) => {
+          const descriptionInvalid = Boolean(validationActive && missingPaths?.has(`exceptions.${index}.description`));
+          const confirmationInvalid = Boolean(validationActive && missingPaths?.has(`exceptions.${index}.riskConfirmation`));
+          return (
           <div className="exception-item" key={item.id}>
             <div className="exception-item-toolbar">
-              <span className="meta-chip">Created by {item.createdBy?.role}</span>
+              <span className="meta-chip">Added by {formatRole(item.createdBy?.role)}</span>
               {canAdd && (
                 <button className="icon-button danger" type="button" aria-label="Remove exception" disabled={disabled} onClick={() => removeException(item.id)}>
                   <TrashIcon />
                 </button>
               )}
             </div>
-            <textarea className="control min-h-20" aria-label="Exception description" value={item.description ?? ""} disabled={disabled} onChange={(event) => update(item.id, { description: event.target.value })} />
+            <label className="field">
+              <span>Description</span>
+              <textarea className={`control min-h-20 ${descriptionInvalid ? "is-invalid" : ""}`} aria-invalid={descriptionInvalid} value={item.description ?? ""} disabled={disabled} onChange={(event) => update(item.id, { description: event.target.value })} />
+            </label>
             <div className="mt-2 flex flex-wrap items-center gap-3">
-              <select className="control w-40" aria-label="Exception severity" value={item.severity ?? "MEDIUM"} disabled={disabled} onChange={(event) => update(item.id, { severity: event.target.value })}>
-                <option value="LOW">Low</option>
-                <option value="MEDIUM">Medium</option>
-                <option value="HIGH">High</option>
-              </select>
-              {item.createdBy?.role === "InvestmentAnalyst" && userRole === "RiskOfficer" && (
-                <select className="control w-52" aria-label="Risk confirmation" value={item.riskConfirmation ?? ""} disabled={disabled} onChange={(event) => update(item.id, { riskConfirmation: event.target.value })}>
-                  <option value="">Risk confirmation</option>
-                  <option value="CONFIRMED">Confirmed</option>
-                  <option value="REFER_BACK">Refer back</option>
+              <label className="field w-40">
+                <span>Severity</span>
+                <select className="control" value={item.severity ?? "MEDIUM"} disabled={disabled} onChange={(event) => update(item.id, { severity: event.target.value })}>
+                  <option value="LOW">Low</option>
+                  <option value="MEDIUM">Medium</option>
+                  <option value="HIGH">High</option>
                 </select>
+              </label>
+              {item.createdBy?.role === "InvestmentAnalyst" && userRole === "RiskOfficer" && (
+                <label className="field w-52">
+                  <span>Risk review decision</span>
+                  <select className={`control ${confirmationInvalid ? "is-invalid" : ""}`} aria-invalid={confirmationInvalid} value={item.riskConfirmation ?? ""} disabled={disabled} onChange={(event) => update(item.id, { riskConfirmation: event.target.value })}>
+                    <option value="">Select a decision</option>
+                    <option value="CONFIRMED">Confirmed</option>
+                    <option value="REFER_BACK">Refer back</option>
+                  </select>
+                </label>
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </section>
   );
 };
+
+const formatRole = (role: string | undefined) => role === "InvestmentAnalyst"
+  ? "investment analyst"
+  : role === "RiskOfficer"
+    ? "risk officer"
+    : "request user";
 
 const TrashIcon = () => (
   <svg viewBox="0 0 16 16" aria-hidden="true">

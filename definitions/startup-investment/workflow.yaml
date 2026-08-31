@@ -4,9 +4,14 @@ workflow:
   states:
     - DRAFT
     - INVESTMENT_REVIEW
-    - PENDING_INVESTMENT_APPROVAL
+    - PENDING_INVESTMENT_APPROVAL_LEVEL_1
+    - PENDING_INVESTMENT_APPROVAL_LEVEL_2
+    - PENDING_INVESTMENT_APPROVAL_LEVEL_3
     - RISK_REVIEW
-    - PENDING_RISK_APPROVAL
+    - PENDING_RISK_APPROVAL_LEVEL_1
+    - PENDING_RISK_APPROVAL_LEVEL_2
+    - PENDING_RISK_APPROVAL_LEVEL_3
+    - PENDING_RISK_APPROVAL_LEVEL_4
     - APPROVED
     - DECLINED
     - WITHDRAWN
@@ -14,28 +19,78 @@ workflow:
     - action: workflow.startInvestmentReview
       from: DRAFT
       to: INVESTMENT_REVIEW
-      enabledRule: canEditInvestmentReview
-    - action: workflow.submitInvestmentReview
+    - action: workflow.submitInvestmentReviewLevel1
       from: INVESTMENT_REVIEW
-      to: PENDING_INVESTMENT_APPROVAL
-      enabledRule: canSubmitToInvestmentApprover
-    - action: workflow.approveInvestmentReview
-      from: PENDING_INVESTMENT_APPROVAL
+      to: PENDING_INVESTMENT_APPROVAL_LEVEL_1
+    - action: workflow.submitInvestmentReviewLevel2
+      from: INVESTMENT_REVIEW
+      to: PENDING_INVESTMENT_APPROVAL_LEVEL_2
+    - action: workflow.submitInvestmentReviewLevel3
+      from: INVESTMENT_REVIEW
+      to: PENDING_INVESTMENT_APPROVAL_LEVEL_3
+    - action: workflow.approveInvestmentLevel1Complete
+      from: PENDING_INVESTMENT_APPROVAL_LEVEL_1
       to: RISK_REVIEW
-      enabledRule: canApproveInvestmentReview
-    - action: workflow.submitRiskReview
+    - action: workflow.approveInvestmentLevel1ToLevel2
+      from: PENDING_INVESTMENT_APPROVAL_LEVEL_1
+      to: PENDING_INVESTMENT_APPROVAL_LEVEL_2
+    - action: workflow.approveInvestmentLevel1ToLevel3
+      from: PENDING_INVESTMENT_APPROVAL_LEVEL_1
+      to: PENDING_INVESTMENT_APPROVAL_LEVEL_3
+    - action: workflow.approveInvestmentLevel2Complete
+      from: PENDING_INVESTMENT_APPROVAL_LEVEL_2
+      to: RISK_REVIEW
+    - action: workflow.approveInvestmentLevel2ToLevel3
+      from: PENDING_INVESTMENT_APPROVAL_LEVEL_2
+      to: PENDING_INVESTMENT_APPROVAL_LEVEL_3
+    - action: workflow.approveInvestmentLevel3Complete
+      from: PENDING_INVESTMENT_APPROVAL_LEVEL_3
+      to: RISK_REVIEW
+    - action: workflow.submitRiskReviewLevel1
       from: RISK_REVIEW
-      to: PENDING_RISK_APPROVAL
-      enabledRule: canEditRiskReview
-    - action: workflow.approveFinalRequest
-      from: PENDING_RISK_APPROVAL
+      to: PENDING_RISK_APPROVAL_LEVEL_1
+    - action: workflow.submitRiskReviewLevel2
+      from: RISK_REVIEW
+      to: PENDING_RISK_APPROVAL_LEVEL_2
+    - action: workflow.submitRiskReviewLevel3
+      from: RISK_REVIEW
+      to: PENDING_RISK_APPROVAL_LEVEL_3
+    - action: workflow.submitRiskReviewLevel4
+      from: RISK_REVIEW
+      to: PENDING_RISK_APPROVAL_LEVEL_4
+    - action: workflow.approveRiskLevel1Complete
+      from: PENDING_RISK_APPROVAL_LEVEL_1
       to: APPROVED
-      enabledRule: canApproveFinalRequest
+    - action: workflow.approveRiskLevel1ToLevel2
+      from: PENDING_RISK_APPROVAL_LEVEL_1
+      to: PENDING_RISK_APPROVAL_LEVEL_2
+    - action: workflow.approveRiskLevel1ToLevel3
+      from: PENDING_RISK_APPROVAL_LEVEL_1
+      to: PENDING_RISK_APPROVAL_LEVEL_3
+    - action: workflow.approveRiskLevel1ToLevel4
+      from: PENDING_RISK_APPROVAL_LEVEL_1
+      to: PENDING_RISK_APPROVAL_LEVEL_4
+    - action: workflow.approveRiskLevel2Complete
+      from: PENDING_RISK_APPROVAL_LEVEL_2
+      to: APPROVED
+    - action: workflow.approveRiskLevel2ToLevel3
+      from: PENDING_RISK_APPROVAL_LEVEL_2
+      to: PENDING_RISK_APPROVAL_LEVEL_3
+    - action: workflow.approveRiskLevel2ToLevel4
+      from: PENDING_RISK_APPROVAL_LEVEL_2
+      to: PENDING_RISK_APPROVAL_LEVEL_4
+    - action: workflow.approveRiskLevel3Complete
+      from: PENDING_RISK_APPROVAL_LEVEL_3
+      to: APPROVED
+    - action: workflow.approveRiskLevel3ToLevel4
+      from: PENDING_RISK_APPROVAL_LEVEL_3
+      to: PENDING_RISK_APPROVAL_LEVEL_4
+    - action: workflow.approveRiskLevel4Complete
+      from: PENDING_RISK_APPROVAL_LEVEL_4
+      to: APPROVED
     - action: workflow.decline
       from: "*"
       to: DECLINED
-      enabledRule: canDeclineRequest
     - action: workflow.withdraw
       from: "*"
       to: WITHDRAWN
-      enabledRule: canWithdrawRequest

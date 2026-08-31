@@ -1,5 +1,4 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
-import { defaultDemoRequestId } from "../../config/appConstants";
 
 type RequestWorkbenchState = {
   userId: string;
@@ -7,14 +6,16 @@ type RequestWorkbenchState = {
   selectedPageId: string | null;
   draft: Record<string, any>;
   validationMode: boolean;
+  hasUnsavedChanges: boolean;
 };
 
 const initialState: RequestWorkbenchState = {
   userId: "analyst",
-  requestCaseId: defaultDemoRequestId,
+  requestCaseId: "",
   selectedPageId: null,
   draft: {},
   validationMode: false,
+  hasUnsavedChanges: false,
 };
 
 const requestWorkbenchSlice = createSlice({
@@ -23,11 +24,13 @@ const requestWorkbenchSlice = createSlice({
   reducers: {
     setUserId: (state, action: PayloadAction<string>) => {
       state.userId = action.payload;
+      state.hasUnsavedChanges = false;
     },
     setRequestCaseId: (state, action: PayloadAction<string>) => {
       state.requestCaseId = action.payload;
       state.selectedPageId = null;
       state.validationMode = false;
+      state.hasUnsavedChanges = false;
     },
     setSelectedPageId: (state, action: PayloadAction<string>) => {
       state.selectedPageId = action.payload;
@@ -38,8 +41,11 @@ const requestWorkbenchSlice = createSlice({
     enableValidationMode: (state) => {
       state.validationMode = true;
     },
+    setHasUnsavedChanges: (state, action: PayloadAction<boolean>) => {
+      state.hasUnsavedChanges = action.payload;
+    },
   },
 });
 
-export const { setUserId, setRequestCaseId, setSelectedPageId, setDraft, enableValidationMode } = requestWorkbenchSlice.actions;
+export const { setUserId, setRequestCaseId, setSelectedPageId, setDraft, enableValidationMode, setHasUnsavedChanges } = requestWorkbenchSlice.actions;
 export default requestWorkbenchSlice.reducer;
