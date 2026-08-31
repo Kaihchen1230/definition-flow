@@ -17,6 +17,8 @@ The POC uses a startup investment approval scenario to demonstrate:
 
 Teams adapting this POC should start with the [Frontend Reference Implementation Guide](docs/frontend-reference-guide.md), which identifies the reusable evaluator/workbench modules, the domain-specific replacement points, and the trusted-frontend constraint.
 
+The [Internal UI Component Migration Guide](docs/internal-ui-component-migration.md) provides a step-by-step adapter strategy for mapping the semantic renderer IDs to a company's internal React component library without coupling page config or business rules to that library.
+
 The [Calculation Engine Integration](docs/calculation-engine-integration.md) documents the retained adapter seam for future lending-rule-engine calculations. Approval routing in the active scenario is intentionally manual.
 
 ## Repository Shape

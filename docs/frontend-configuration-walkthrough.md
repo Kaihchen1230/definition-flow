@@ -2,6 +2,8 @@
 
 This guide shows where to make common DefinitionFlow frontend configuration changes. The examples are illustrative: they explain the supported extension points but do not describe changes that must be applied to the current startup-investment flow.
 
+For teams replacing the POC controls with an internal design system, see the [Internal UI Component Migration Guide](internal-ui-component-migration.md).
+
 ## Configuration Model
 
 ```text
