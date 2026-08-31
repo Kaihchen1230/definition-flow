@@ -1,46 +1,77 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   useFetchDemoRequestsQuery,
   useFetchDemoUsersQuery,
   useFetchEvaluationContextQuery,
-  useReloadStartupInvestmentDefinitionsMutation,
-  useResetDemoDataMutation,
+  useCreateRequestMutation,
+  usePatchRequestDataMutation,
 } from "../services/approvalApi";
 import { startupInvestmentUiDefinition } from "../config/uiDefinition";
 import { showEvaluationTrace } from "../config/appConstants";
 import { RequestWorkbench } from "../features/request-workbench/RequestWorkbench";
+import { companyProfileIntakeDataPaths, RequestIntake } from "../features/request-intake/RequestIntake";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { setRequestCaseId, setUserId, setSelectedPageId } from "../features/request-workbench/requestWorkbenchSlice";
 import { evaluateUiDefinition } from "../utils/evaluateUiDefinition";
+import { evaluateFrontendContext } from "../rules/evaluateFrontendContext";
+import { getPath } from "../utils/objectPath";
 
 export const App = () => {
   const dispatch = useAppDispatch();
   const userId = useAppSelector((state) => state.requestWorkbench.userId);
   const requestCaseId = useAppSelector((state) => state.requestWorkbench.requestCaseId);
   const selectedPageId = useAppSelector((state) => state.requestWorkbench.selectedPageId);
+  const hasUnsavedChanges = useAppSelector((state) => state.requestWorkbench.hasUnsavedChanges);
+  const [intakeError, setIntakeError] = useState<string | null>(null);
+  const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
   const users = useFetchDemoUsersQuery();
   const requests = useFetchDemoRequestsQuery();
-  const evaluated = useFetchEvaluationContextQuery({ requestCaseId, userId });
-  const [resetDemo] = useResetDemoDataMutation();
-  const [reloadDefinitions] = useReloadStartupInvestmentDefinitionsMutation();
+  const evaluated = useFetchEvaluationContextQuery({ requestCaseId, userId }, { skip: !requestCaseId });
+  const [createRequest, create] = useCreateRequestMutation();
+  const [patchRequest, patch] = usePatchRequestDataMutation();
 
   const evaluatedUi = useMemo(() => {
     if (!evaluated.data) {
       return undefined;
     }
-    return {
-      ...evaluated.data,
-      pages: evaluateUiDefinition(startupInvestmentUiDefinition.pages, evaluated.data),
-    };
+    const frontendEvaluation = evaluateFrontendContext(evaluated.data);
+    return { ...frontendEvaluation, pages: evaluateUiDefinition(startupInvestmentUiDefinition.pages, frontendEvaluation) };
   }, [evaluated.data]);
   const visiblePages = useMemo(() => evaluatedUi?.pages.filter((page) => page.visible) ?? [], [evaluatedUi]);
   const selectedRequest = requests.data?.find((request) => request.id === requestCaseId);
 
-  useEffect(() => {
-    if (requests.data?.length && !requests.data.some((request) => request.id === requestCaseId)) {
-      dispatch(setRequestCaseId(requests.data[0].id));
+  const createFromIntake = async (data: Record<string, any>) => {
+    setIntakeError(null);
+    let requestId = pendingRequestId;
+    try {
+      if (!requestId) {
+        const created = await createRequest({ requestType: "startupInvestment", userId }).unwrap();
+        requestId = created.id;
+        setPendingRequestId(requestId);
+      }
+      const result = await patchRequest({
+        requestCaseId: requestId,
+        userId,
+        updates: companyProfileIntakeDataPaths.map((path) => ({ path, value: getPath(data, path) })),
+      }).unwrap() as { success?: boolean };
+      if (result.success === false) {
+        throw new Error("Page patch was rejected");
+      }
+      await requests.refetch().unwrap();
+      dispatch(setRequestCaseId(requestId));
+      setPendingRequestId(null);
+    } catch {
+      setIntakeError(requestId
+        ? "The request was created, but its company profile could not be saved. Try again to finish setup."
+        : "The request could not be created. Confirm that the backend definitions and demo users are loaded.");
     }
-  }, [dispatch, requestCaseId, requests.data]);
+  };
+
+  const startNewRequest = () => {
+    setIntakeError(null);
+    setPendingRequestId(null);
+    dispatch(setRequestCaseId(""));
+  };
 
   useEffect(() => {
     if (!selectedPageId && visiblePages.length > 0) {
@@ -52,35 +83,34 @@ export const App = () => {
   }, [dispatch, selectedPageId, visiblePages]);
 
   const selectedPage = visiblePages.find((page) => page.id === selectedPageId) ?? visiblePages[0];
-
   return (
     <main className="min-h-screen bg-[var(--app-bg)] text-[var(--text-primary)]">
       <div className="mx-auto max-w-[1480px] px-4 py-4 sm:px-6">
         <header className="app-header">
           <div className="min-w-0">
-            <p className="app-kicker">Request-definition platform POC</p>
-            <div className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
               <h1 className="text-[1.45rem] font-semibold leading-tight tracking-[-0.02em]">Startup Investment Approval</h1>
-              <span className="text-xs font-medium text-[var(--text-muted)]">Case {requestCaseId.slice(0, 8)}</span>
+              <span className="text-xs font-medium text-[var(--text-muted)]">{requestCaseId ? `Case ${requestCaseId.slice(0, 8)}` : "New request"}</span>
             </div>
             <p className="mt-1 max-w-3xl text-sm leading-6 text-[var(--text-secondary)]">
-              Role-aware review surface backed by server-side rules, workflow actions, validation, and audit trace.
+              Create, review, and approve startup investment requests using the permissions of the selected user.
             </p>
           </div>
           <div className="app-toolbar">
             <label className="toolbar-field toolbar-request-field">
-              <span>Demo request</span>
-              <select className="control" value={requestCaseId} onChange={(event) => dispatch(setRequestCaseId(event.target.value))}>
+              <span>Request</span>
+              <select className="control" value={requestCaseId} disabled={hasUnsavedChanges} onChange={(event) => dispatch(setRequestCaseId(event.target.value))}>
+                {!requestCaseId ? <option value="">Open an existing request</option> : null}
                 {(requests.data ?? []).map((request) => (
                   <option value={request.id} key={request.id}>
-                    {request.label}
+                    {formatRequestLabel(request)}
                   </option>
                 ))}
               </select>
             </label>
             <label className="toolbar-field toolbar-user-field">
               <span>User</span>
-              <select className="control" value={userId} onChange={(event) => dispatch(setUserId(event.target.value))}>
+              <select className="control" value={userId} disabled={hasUnsavedChanges} onChange={(event) => dispatch(setUserId(event.target.value))}>
                 {(users.data ?? []).map((user) => (
                   <option value={user.id} key={user.id}>
                     {user.displayName} ({formatRoleName(user.role)})
@@ -90,15 +120,12 @@ export const App = () => {
             </label>
             {selectedRequest ? <p className="toolbar-scenario">{selectedRequest.scenario}</p> : <span />}
             <div className="toolbar-actions">
-              <button className="button secondary" onClick={() => reloadDefinitions()}>
-                Reload definitions
-              </button>
-              <button className="button secondary" onClick={() => resetDemo()}>
-                Reset demo
-              </button>
+              {requestCaseId ? <button className="button" onClick={startNewRequest} disabled={hasUnsavedChanges}>New request</button> : null}
             </div>
           </div>
         </header>
+
+        {hasUnsavedChanges && <div className="notice">Save the current page before switching request or user.</div>}
 
         {evaluated.isLoading && (
           <div className="panel">
@@ -115,10 +142,20 @@ export const App = () => {
             Backend not ready. Start the backend, load definitions, then reset demo data.
           </div>
         )}
+        {!requestCaseId && users.data ? (
+          <RequestIntake
+            userId={userId}
+            userRole={users.data.find((user) => user.id === userId)?.role ?? "InvestmentAnalyst"}
+            pending={create.isLoading || patch.isLoading}
+            error={intakeError}
+            onCreate={createFromIntake}
+          />
+        ) : null}
 
-        {evaluatedUi && (
+        {requestCaseId && evaluatedUi && (
           <RequestWorkbench
             evaluated={evaluatedUi}
+            pagesConfig={startupInvestmentUiDefinition.pages}
             selectedPage={selectedPage}
             selectedPageId={selectedPageId}
             setSelectedPageId={(id) => dispatch(setSelectedPageId(id))}
@@ -134,3 +171,5 @@ export const App = () => {
 const formatRoleName = (role: string) => {
   return role.replace(/([a-z])([A-Z])/g, "$1 $2");
 };
+
+const formatRequestLabel = ({ companyName, id }: { companyName: string; id: string }) => `${companyName.trim() || "Untitled request"} (${id.slice(0, 8)})`;

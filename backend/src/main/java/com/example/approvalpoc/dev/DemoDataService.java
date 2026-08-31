@@ -61,20 +61,21 @@ public class DemoDataService {
     }
 
     public List<DemoRequestSummary> requests() {
-        return DEMO_REQUEST_IDS.stream()
-                .map(id -> requestCaseRepository.findById(id).orElse(null))
-                .filter(requestCase -> requestCase != null)
+        return requestCaseRepository.findAll().stream()
+                .sorted((left, right) -> left.getCreatedAt().compareTo(right.getCreatedAt()))
                 .map(this::summary)
                 .toList();
     }
 
     private DemoRequestSummary summary(RequestCaseEntity requestCase) {
         JsonNode requestData = readJson(requestCase.getRequestData());
+        String companyName = requestData.path("company").path("name").asText();
+        String label = requestData.path("demo").path("label").asText();
         return new DemoRequestSummary(
                 requestCase.getId().toString(),
-                requestData.path("demo").path("label").asText(requestData.path("company").path("name").asText()),
-                requestData.path("demo").path("scenario").asText(),
-                requestData.path("company").path("name").asText(),
+                label.isBlank() ? (companyName.isBlank() ? "Untitled request" : companyName) : label,
+                requestData.path("demo").path("scenario").asText("New empty request"),
+                companyName,
                 requestCase.getWorkflowState()
         );
     }
@@ -101,13 +102,9 @@ public class DemoDataService {
                 writeJson(List.of("EDIT_INVESTMENT_REQUEST", "WITHDRAW_REQUEST")),
                 writeJson(List.of("InvestmentTeam"))
         ));
-        userRepository.save(new DemoUserEntity(
-                "investment-approver",
-                "Iris Investment Approver",
-                "InvestmentAnalyst",
-                writeJson(List.of("EDIT_INVESTMENT_REQUEST", "APPROVE_INVESTMENT_REVIEW", "DECLINE_REQUEST", "WITHDRAW_REQUEST")),
-                writeJson(List.of("InvestmentTeam"))
-        ));
+        seedApprover("investment-approver-l1", "Iris Investment Approver · L1", "InvestmentAnalyst", "APPROVE_INVESTMENT_LEVEL_1", "InvestmentTeam");
+        seedApprover("investment-approver-l2", "Imani Investment Approver · L2", "InvestmentAnalyst", "APPROVE_INVESTMENT_LEVEL_2", "InvestmentTeam");
+        seedApprover("investment-approver-l3", "Ivan Investment Approver · L3", "InvestmentAnalyst", "APPROVE_INVESTMENT_LEVEL_3", "InvestmentTeam");
         userRepository.save(new DemoUserEntity(
                 "risk-officer",
                 "Riley Risk Officer",
@@ -115,19 +112,26 @@ public class DemoDataService {
                 writeJson(List.of("EDIT_RISK_REVIEW")),
                 writeJson(List.of("RiskTeam"))
         ));
-        userRepository.save(new DemoUserEntity(
-                "risk-approver",
-                "Reese Risk Approver",
-                "RiskOfficer",
-                writeJson(List.of("EDIT_RISK_REVIEW", "APPROVE_FINAL_REQUEST", "DECLINE_REQUEST")),
-                writeJson(List.of("RiskTeam"))
-        ));
+        seedApprover("risk-approver-l1", "Reese Risk Approver · L1", "RiskOfficer", "APPROVE_RISK_LEVEL_1", "RiskTeam");
+        seedApprover("risk-approver-l2", "Rina Risk Approver · L2", "RiskOfficer", "APPROVE_RISK_LEVEL_2", "RiskTeam");
+        seedApprover("risk-approver-l3", "Rafael Risk Approver · L3", "RiskOfficer", "APPROVE_RISK_LEVEL_3", "RiskTeam");
+        seedApprover("risk-approver-l4", "Rowan Risk Approver · L4", "RiskOfficer", "APPROVE_RISK_LEVEL_4", "RiskTeam");
         userRepository.save(new DemoUserEntity(
                 "support",
                 "Sam Support Viewer",
                 "Support",
                 writeJson(List.of("VIEW_REQUEST")),
                 writeJson(List.of("Support"))
+        ));
+    }
+
+    private void seedApprover(String id, String displayName, String role, String entitlement, String team) {
+        userRepository.save(new DemoUserEntity(
+                id,
+                displayName,
+                role,
+                writeJson(List.of(entitlement, "DECLINE_REQUEST")),
+                writeJson(List.of(team))
         ));
     }
 
@@ -153,7 +157,9 @@ public class DemoDataService {
                         "riskConfirmation", ""
                 )),
                 List.of("HIGH_BURN_RATE", "DATA_PRIVACY_EXPOSURE"),
-                false
+                false,
+                List.of("LEVEL_1", "LEVEL_3"),
+                List.of()
         );
     }
 
@@ -170,7 +176,9 @@ public class DemoDataService {
                 List.of(Map.of("name", "Nora Singh", "title", "CEO", "ownershipPercent", 64, "backgroundCheck", "YES")),
                 List.of(),
                 List.of(),
-                false
+                false,
+                List.of("LEVEL_1"),
+                List.of()
         );
     }
 
@@ -193,7 +201,9 @@ public class DemoDataService {
                         "riskConfirmation", ""
                 )),
                 List.of("PENDING_LITIGATION"),
-                true
+                true,
+                List.of("LEVEL_2", "LEVEL_3"),
+                List.of()
         );
     }
 
@@ -209,7 +219,9 @@ public class DemoDataService {
             List<Map<String, Object>> founders,
             List<Map<String, Object>> exceptions,
             List<String> indicators,
-            boolean hasMaterialException
+            boolean hasMaterialException,
+            List<String> investmentApprovalLevels,
+            List<String> riskApprovalLevels
     ) {
         return Map.of(
                 "demo", Map.of("label", label, "scenario", scenario),
@@ -224,6 +236,10 @@ public class DemoDataService {
                         "amount", amount,
                         "instrument", instrument,
                         "useOfFunds", useOfFunds
+                ),
+                "approvalRequirements", Map.of(
+                        "investmentLevels", investmentApprovalLevels,
+                        "riskLevels", riskApprovalLevels
                 ),
                 "founders", founders,
                 "exceptions", exceptions,

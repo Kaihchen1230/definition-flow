@@ -13,7 +13,7 @@ The rule DSL expresses deterministic, side-effect-free rules for:
 
 ## Non-goals
 
-- no executable JavaScript, Java, or TypeScript expressions
+- no executable callbacks or arbitrary expressions inside rule config
 - no arbitrary formula language in v1
 - no mutation of request data
 - no direct database queries inside rules
@@ -23,7 +23,7 @@ The rule DSL expresses deterministic, side-effect-free rules for:
 
 ## Evaluation Context
 
-Rules evaluate against a runtime context assembled by the backend:
+Rules evaluate in the frontend against a runtime context assembled from the backend response and the current unsaved Redux draft:
 
 ```json
 {
@@ -40,12 +40,10 @@ Rules evaluate against a runtime context assembled by the backend:
 
 Rule paths are absolute within this context:
 
-```yaml
-path: workflow.state
-path: user.entitlements
-path: requestData.investment.amount
-path: derived.investmentVariant
-path: calculations.approvalRoute.stale
+```ts
+{ path: "workflow.state", op: "eq", value: "RISK_REVIEW" }
+{ path: "user.entitlements", op: "contains", value: "EDIT_RISK_REVIEW" }
+{ path: "requestData.investment.amount", op: "gte", value: 5_000_000 }
 ```
 
 UI data paths are relative to `requestData` unless explicitly marked otherwise.
@@ -54,14 +52,13 @@ UI data paths are relative to `requestData` unless explicitly marked otherwise.
 
 Use intuitive boolean composition:
 
-```yaml
-and:
-  - path: workflow.state
-    op: in
-    value: [DRAFT, INVESTMENT_REVIEW]
-  - path: user.entitlements
-    op: contains
-    value: EDIT_INVESTMENT_REQUEST
+```ts
+{
+  and: [
+    { path: "workflow.state", op: "in", value: ["DRAFT", "INVESTMENT_REVIEW"] },
+    { path: "user.entitlements", op: "contains", value: "EDIT_INVESTMENT_REQUEST" },
+  ],
+}
 ```
 
 Supported composition:
@@ -114,22 +111,14 @@ Collection:
 
 Collection rules use `$item` for item scope:
 
-```yaml
-id: borrowersHaveFinancialStatements
-scope: [submit, approve]
-severity: blocking
-rule:
-  allItems:
-    path: requestData.clients
-    where:
-      path: $item.roles
-      op: contains
-      value: BORROWER
-    rule:
-      path: $item.financialStatements
-      op: minCount
-      value: 1
-message: Each borrower must have at least one financial statement.
+```ts
+{
+  allItems: {
+    path: "requestData.clients",
+    where: { path: "$item.roles", op: "contains", value: "BORROWER" },
+    rule: { path: "$item.financialStatements", op: "minCount", value: 1 },
+  },
+}
 ```
 
 ## UI Behavior
@@ -137,11 +126,18 @@ message: Each borrower must have at least one financial statement.
 - Hidden parent hides all children.
 - Disabled parent disables editable children/actions.
 - Hidden fields do not show client required validation.
-- Disabled fields can still participate in backend validation.
+- Disabled fields can still participate in frontend workflow validation.
 - Visibility does not manage data lifecycle. Hidden data is not automatically deleted.
 - `uiRequired` and `blockingValidation` are separate concerns.
 
 ## Versioning
 
-Evaluation uses the latest active definition. Critical actions record the definition versions used in audit events.
+Frontend rule config ships with the frontend build. The frontend sends `X-Frontend-Rule-Catalog-Version` with mutations, and the backend records that value in audit details.
 
+Backend YAML definitions remain versioned independently. Calculation audit records also include the calculation engine and its rule-set version. These versions answer different questions:
+
+- frontend rule-catalog version: which immediate permission, validation, and eligibility rules the UI evaluated
+- backend definition version: which workflow, schema, and calculation dependency configuration LOOP loaded
+- calculation rule-set version: which business calculation logic the calculation engine executed
+
+See `docs/calculation-engine-integration.md` for the calculation-engine seam and freshness ownership.

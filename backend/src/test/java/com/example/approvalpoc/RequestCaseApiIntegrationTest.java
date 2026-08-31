@@ -41,19 +41,18 @@ class RequestCaseApiIntegrationTest {
     }
 
     @Test
-    void submitInvestmentReviewRequiresFreshApprovalRoute() throws Exception {
-        mockMvc.perform(post("/api/request-cases/{requestCaseId}/actions/workflow.submitInvestmentReview", DEMO_REQUEST_ID)
+    void requestStartsAtTheLowestSelectedInvestmentApprovalTier() throws Exception {
+        mockMvc.perform(post("/api/request-cases/{requestCaseId}/actions/workflow.submitInvestmentReviewLevel1", DEMO_REQUEST_ID)
                         .param("userId", "analyst")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Blocking validations must be resolved."))
-                .andExpect(jsonPath("$.details.issues[*].ruleId", hasItem("approvalRouteMustBeFresh")));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.details.to").value("PENDING_INVESTMENT_APPROVAL_LEVEL_1"));
     }
 
     @Test
-    void submitInvestmentReviewRequiresCoreFieldsAndCompleteFounderDetails() throws Exception {
+    void backendTrustsFrontendForFieldValidation() throws Exception {
         ObjectNode patchBody = objectMapper.createObjectNode();
         ArrayNode updates = patchBody.putArray("updates");
         updates.addObject().put("path", "company.name").put("value", "");
@@ -72,68 +71,20 @@ class RequestCaseApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
-        mockMvc.perform(post("/api/request-cases/{requestCaseId}/actions/calculateApprovalRoute", DEMO_REQUEST_ID)
+        mockMvc.perform(post("/api/request-cases/{requestCaseId}/actions/workflow.submitInvestmentReviewLevel1", DEMO_REQUEST_ID)
                         .param("userId", "analyst")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
-
-        mockMvc.perform(post("/api/request-cases/{requestCaseId}/actions/workflow.submitInvestmentReview", DEMO_REQUEST_ID)
-                        .param("userId", "analyst")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.details.issues[*].ruleId", hasItem("companyNameRequired")))
-                .andExpect(jsonPath("$.details.issues[*].ruleId", hasItem("founderDetailsRequired")));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.details.to").value("PENDING_INVESTMENT_APPROVAL_LEVEL_1"));
     }
 
     @Test
-    void riskInputsInvalidateRouteAndMustBeCompletedBeforeFinalApproval() throws Exception {
-        performSuccessfulAction("analyst", "calculateApprovalRoute");
-        mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluation-context", DEMO_REQUEST_ID)
-                        .param("userId", "analyst"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.calculations.approvalRoute.result.routeType").value("ENHANCED_RISK_CHAIN"))
-                .andExpect(jsonPath("$.calculations.approvalRoute.result.requiredLevels[0]").value("INVESTMENT_APPROVER"))
-                .andExpect(jsonPath("$.calculations.approvalRoute.result.requiredLevels[1]").value("RISK_OFFICER"))
-                .andExpect(jsonPath("$.ruleResults.canSubmitToInvestmentApprover.result").value(true));
-        performSuccessfulAction("analyst", "workflow.submitInvestmentReview");
-        performSuccessfulAction("investment-approver", "workflow.approveInvestmentReview");
-
-        mockMvc.perform(post("/api/request-cases/{requestCaseId}/actions/workflow.submitRiskReview", DEMO_REQUEST_ID)
-                        .param("userId", "risk-officer")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.details.issues[*].ruleId", hasItem("analystExceptionsNeedRiskConfirmation")))
-                .andExpect(jsonPath("$.details.issues[*].ruleId", hasItem("enhancedRiskNarrativeRequired")))
-                .andExpect(jsonPath("$.details.issues[*].ruleId", hasItem("riskRecommendationRequired")))
-                .andExpect(jsonPath("$.details.issues[*].ruleId", hasItem("companyProfileRiskConfirmed")))
-                .andExpect(jsonPath("$.details.issues[*].ruleId", hasItem("investmentTermsRiskConfirmed")))
-                .andExpect(jsonPath("$.details.issues[*].ruleId", hasItem("foundersOwnershipRiskConfirmed")));
-
-        ObjectNode referBackPatch = objectMapper.createObjectNode();
-        referBackPatch.putArray("updates")
-                .addObject()
-                .put("path", "risk.pageConfirmations.companyProfile")
-                .put("value", "REFER_BACK");
-        mockMvc.perform(patch("/api/request-cases/{requestCaseId}/request-data", DEMO_REQUEST_ID)
-                        .param("userId", "risk-officer")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(referBackPatch)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
-
-        mockMvc.perform(post("/api/request-cases/{requestCaseId}/actions/workflow.submitRiskReview", DEMO_REQUEST_ID)
-                        .param("userId", "risk-officer")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.details.issues[*].ruleId", hasItem("companyProfileRiskNoteRequired")));
+    void highValueRequestCompletesNonContiguousMultiLevelApprovalSequences() throws Exception {
+        performSuccessfulAction("analyst", "workflow.submitInvestmentReviewLevel1");
+        performSuccessfulAction("investment-approver-l1", "workflow.approveInvestmentLevel1ToLevel3");
+        performSuccessfulAction("investment-approver-l3", "workflow.approveInvestmentLevel3Complete");
 
         ObjectNode riskPatch = objectMapper.createObjectNode();
         ArrayNode updates = riskPatch.putArray("updates");
@@ -142,6 +93,9 @@ class RequestCaseApiIntegrationTest {
         updates.addObject().put("path", "risk.pageConfirmations.companyProfile").put("value", "CONFIRMED");
         updates.addObject().put("path", "risk.pageConfirmations.investmentTerms").put("value", "CONFIRMED");
         updates.addObject().put("path", "risk.pageConfirmations.foundersOwnership").put("value", "CONFIRMED");
+        ObjectNode riskLevelsUpdate = updates.addObject();
+        riskLevelsUpdate.put("path", "approvalRequirements.riskLevels");
+        riskLevelsUpdate.set("value", objectMapper.valueToTree(java.util.List.of("LEVEL_1", "LEVEL_4")));
         ArrayNode exceptions = objectMapper.createArrayNode();
         exceptions.addObject()
                 .put("id", "ex-1")
@@ -160,20 +114,12 @@ class RequestCaseApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
-        mockMvc.perform(post("/api/request-cases/{requestCaseId}/actions/workflow.submitRiskReview", DEMO_REQUEST_ID)
-                        .param("userId", "risk-officer")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{}"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.details.issues[*].ruleId", hasItem("approvalRouteMustBeFresh")));
-
-        performSuccessfulAction("risk-officer", "calculateApprovalRoute");
-        performSuccessfulAction("risk-officer", "workflow.submitRiskReview");
-        performSuccessfulAction("risk-approver", "workflow.approveFinalRequest");
+        performSuccessfulAction("risk-officer", "workflow.submitRiskReviewLevel1");
+        performSuccessfulAction("risk-approver-l1", "workflow.approveRiskLevel1ToLevel4");
+        performSuccessfulAction("risk-approver-l4", "workflow.approveRiskLevel4Complete");
 
         mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluation-context", DEMO_REQUEST_ID)
-                        .param("userId", "risk-approver"))
+                        .param("userId", "risk-approver-l4"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.workflowState").value("APPROVED"));
     }
@@ -182,25 +128,23 @@ class RequestCaseApiIntegrationTest {
     void standardRequestCompletesTheFullApprovalChain() throws Exception {
         String standardRequestId = DemoDataService.STANDARD_REQUEST_ID.toString();
 
-        performSuccessfulAction(standardRequestId, "analyst", "calculateApprovalRoute");
         mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluation-context", standardRequestId)
                         .param("userId", "analyst"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.derived.investmentVariant").value("STANDARD"))
-                .andExpect(jsonPath("$.calculations.approvalRoute.result.routeType").value("STANDARD_APPROVAL_CHAIN"))
-                .andExpect(jsonPath("$.calculations.approvalRoute.result.requiredLevels[0]").value("INVESTMENT_APPROVER"))
-                .andExpect(jsonPath("$.calculations.approvalRoute.result.requiredLevels[1]").value("RISK_OFFICER"))
-                .andExpect(jsonPath("$.calculations.approvalRoute.result.requiredLevels[2]").value("RISK_APPROVER"))
-                .andExpect(jsonPath("$.ruleResults.canSubmitToInvestmentApprover.result").value(true));
+                .andExpect(jsonPath("$.requestData.approvalRequirements.investmentLevels[0]").value("LEVEL_1"))
+                .andExpect(jsonPath("$.requestData.approvalRequirements.riskLevels").isEmpty());
 
-        performSuccessfulAction(standardRequestId, "analyst", "workflow.submitInvestmentReview");
-        performSuccessfulAction(standardRequestId, "investment-approver", "workflow.approveInvestmentReview");
+        performSuccessfulAction(standardRequestId, "analyst", "workflow.submitInvestmentReviewLevel1");
+        performSuccessfulAction(standardRequestId, "investment-approver-l1", "workflow.approveInvestmentLevel1Complete");
 
         ObjectNode confirmationsPatch = objectMapper.createObjectNode();
         ArrayNode confirmationUpdates = confirmationsPatch.putArray("updates");
         confirmationUpdates.addObject().put("path", "risk.pageConfirmations.companyProfile").put("value", "CONFIRMED");
         confirmationUpdates.addObject().put("path", "risk.pageConfirmations.investmentTerms").put("value", "CONFIRMED");
         confirmationUpdates.addObject().put("path", "risk.pageConfirmations.foundersOwnership").put("value", "CONFIRMED");
+        ObjectNode riskLevelsUpdate = confirmationUpdates.addObject();
+        riskLevelsUpdate.put("path", "approvalRequirements.riskLevels");
+        riskLevelsUpdate.set("value", objectMapper.valueToTree(java.util.List.of("LEVEL_1")));
         mockMvc.perform(patch("/api/request-cases/{requestCaseId}/request-data", standardRequestId)
                         .param("userId", "risk-officer")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -208,17 +152,17 @@ class RequestCaseApiIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
-        performSuccessfulAction(standardRequestId, "risk-officer", "workflow.submitRiskReview");
-        performSuccessfulAction(standardRequestId, "risk-approver", "workflow.approveFinalRequest");
+        performSuccessfulAction(standardRequestId, "risk-officer", "workflow.submitRiskReviewLevel1");
+        performSuccessfulAction(standardRequestId, "risk-approver-l1", "workflow.approveRiskLevel1Complete");
 
         mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluation-context", standardRequestId)
-                        .param("userId", "risk-approver"))
+                        .param("userId", "risk-approver-l1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.workflowState").value("APPROVED"));
     }
 
     @Test
-    void demoRequestCatalogContainsThreeRoutingScenarios() throws Exception {
+    void demoRequestCatalogContainsThreeManualApprovalScenarios() throws Exception {
         mockMvc.perform(get("/api/dev/demo/requests"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(3))
@@ -228,7 +172,35 @@ class RequestCaseApiIntegrationTest {
     }
 
     @Test
-    void supportUserCannotPatchRequestData() throws Exception {
+    void createsARequestWithEmptyPageDataInTheWorkflowInitialState() throws Exception {
+        String response = mockMvc.perform(post("/api/request-cases")
+                        .param("userId", "analyst")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"requestType\":\"startupInvestment\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requestType").value("startupInvestment"))
+                .andExpect(jsonPath("$.workflowState").value("DRAFT"))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String requestCaseId = objectMapper.readTree(response).path("id").asText();
+        mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluation-context", requestCaseId)
+                        .param("userId", "analyst"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requestData").isEmpty())
+                .andExpect(jsonPath("$.workflowState").value("DRAFT"))
+                .andExpect(jsonPath("$.workflowActions[0].id").value("workflow.startInvestmentReview"));
+
+        mockMvc.perform(get("/api/dev/demo/requests"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(4))
+                .andExpect(jsonPath("$[*].id", hasItem(requestCaseId)))
+                .andExpect(jsonPath("$[*].label", hasItem("Untitled request")));
+    }
+
+    @Test
+    void backendAcceptsPatchBecauseFrontendOwnsEditPermissions() throws Exception {
         ObjectNode patchBody = objectMapper.createObjectNode();
         ArrayNode updates = patchBody.putArray("updates");
         updates.addObject()
@@ -240,25 +212,29 @@ class RequestCaseApiIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(patchBody)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Save is not allowed for this user or workflow state."));
+                .andExpect(jsonPath("$.success").value(true));
 
         mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluation-context", DEMO_REQUEST_ID)
                         .param("userId", "analyst"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.requestData.company.name").value("Acme Robotics"));
+                .andExpect(jsonPath("$.requestData.company.name").value("Support Edit Attempt"));
     }
 
     @Test
-    void evaluationContextReturnsRuleResultsWithoutBackendOwnedPages() throws Exception {
+    void evaluationContextReturnsRawDataAndWorkflowRuleReferences() throws Exception {
         mockMvc.perform(get("/api/request-cases/{requestCaseId}/evaluation-context", DEMO_REQUEST_ID)
                         .param("userId", "analyst"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.pages").doesNotExist())
                 .andExpect(jsonPath("$.definitionVersions.UI").doesNotExist())
-                .andExpect(jsonPath("$.ruleResults.canEditInvestmentReview.result").value(true))
-                .andExpect(jsonPath("$.ruleResults.showEnhancedRiskReview.result").value(false))
-                .andExpect(jsonPath("$.ruleResults.showRiskOfficerConfirmations.result").value(false));
+                .andExpect(jsonPath("$.ruleResults").doesNotExist())
+                .andExpect(jsonPath("$.validation").doesNotExist())
+                .andExpect(jsonPath("$.canSave").doesNotExist())
+                .andExpect(jsonPath("$.derived").doesNotExist())
+                .andExpect(jsonPath("$.workflowActions[0].id").value("workflow.submitInvestmentReviewLevel1"))
+                .andExpect(jsonPath("$.workflowActions[1].id").value("workflow.submitInvestmentReviewLevel2"))
+                .andExpect(jsonPath("$.workflowActions[2].id").value("workflow.submitInvestmentReviewLevel3"))
+                .andExpect(jsonPath("$.workflowActions[0].enabledRule").doesNotExist());
     }
 
     @Test

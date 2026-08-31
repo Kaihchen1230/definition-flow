@@ -1,3 +1,5 @@
+import type { UiComponentId } from "./uiComponents";
+
 export type User = {
   id: string;
   displayName: string;
@@ -12,27 +14,50 @@ export type DemoRequest = {
   workflowState: string;
 };
 
+export type CreatedRequest = {
+  id: string;
+  requestType: string;
+  workflowState: string;
+};
+
+export type UiRuleReference = string | null;
+
+export type FieldConstraints = {
+  min?: number;
+  max?: number;
+  step?: number;
+  maxDate?: "today" | string;
+  allowedValues?: readonly string[];
+};
+
 export type UiNode = {
   id: string;
   type: string;
-  component?: string;
+  component?: UiComponentId;
   label?: string;
+  helperText?: string;
   dataPath?: string;
   value?: unknown;
   visible: boolean;
   enabled: boolean;
   disabled: boolean;
-  visibleRule: string | null;
-  enabledRule: string | null;
+  visibleRule: UiRuleReference;
+  enabledRule: UiRuleReference;
   required: boolean;
-  requiredRule: string | null;
+  requiredRule: UiRuleReference;
   filter?: { path: string; op: string; value: string };
   debug?: Record<string, unknown>;
   children?: UiNode[];
   actions?: UiNode[];
   requiredFields?: string[];
+  requiredFieldRules?: Record<string, UiRuleReference>;
   actionType?: string;
   calculationId?: string;
+  constraints?: FieldConstraints;
+  itemConstraints?: Record<string, FieldConstraints>;
+  collectionConstraints?: {
+    sum?: { field: string; max?: number; min?: number };
+  };
 };
 
 export type RuleTraceEntry = {
@@ -61,21 +86,31 @@ export type ValidationIssue = {
 export type WorkflowAction = {
   id: string;
   label: string;
+  enabledRule: string | null;
   visible: boolean;
   enabled: boolean;
   disabled: boolean;
   debug?: Record<string, unknown>;
 };
 
-export type EvaluationContext = {
+export type WorkflowActionDefinition = {
+  id: string;
+  label: string;
+};
+
+export type RawEvaluationContext = {
   requestCaseId: string;
   requestType: string;
   workflowState: string;
   user: { userId: string; displayName: string; role: string; entitlements: string[] };
   requestData: Record<string, any>;
-  derived: Record<string, unknown>;
   calculations: Record<string, any>;
   definitionVersions: Record<string, number>;
+  workflowActions: WorkflowActionDefinition[];
+};
+
+export type EvaluationContext = Omit<RawEvaluationContext, "workflowActions"> & {
+  derived: Record<string, unknown>;
   canSave: boolean;
   ruleResults: Record<string, RuleEvaluationResult>;
   workflowActions: WorkflowAction[];

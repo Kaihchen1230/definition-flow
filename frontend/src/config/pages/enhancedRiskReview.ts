@@ -9,7 +9,7 @@ export const enhancedRiskReviewPage = {
   required: false,
   requiredRule: null,
   children: [
-    { id: "enhancedRiskNarrative", type: "field", component: "textarea", dataPath: "risk.enhancedReviewNarrative", label: "Enhanced Risk Narrative", visibleRule: null, enabledRule: null, required: false, requiredRule: "canEditRiskReview" },
-    { id: "riskRecommendation", type: "field", component: "radioGroup", dataPath: "risk.recommendation", label: "Risk Recommendation", visibleRule: null, enabledRule: null, required: false, requiredRule: "canEditRiskReview" },
+    { id: "enhancedRiskNarrative", type: "field", component: "textarea", dataPath: "risk.enhancedReviewNarrative", label: "Enhanced Risk Review Notes", visibleRule: null, enabledRule: null, required: false, requiredRule: "showEnhancedRiskReview" },
+    { id: "riskRecommendation", type: "field", component: "radioGroup", dataPath: "risk.recommendation", label: "Risk Recommendation", visibleRule: null, enabledRule: null, required: false, requiredRule: "showEnhancedRiskReview" },
   ],
 } satisfies UiConfigNode;

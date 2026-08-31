@@ -3,7 +3,6 @@ package com.example.approvalpoc.runtime;
 import com.example.approvalpoc.calculation.CalculationService;
 import com.example.approvalpoc.definition.DefinitionModuleType;
 import com.example.approvalpoc.definition.DefinitionService;
-import com.example.approvalpoc.derived.DerivedFactService;
 import com.example.approvalpoc.dev.DemoUserEntity;
 import com.example.approvalpoc.dev.DemoUserRepository;
 import com.example.approvalpoc.requestcase.RequestCaseEntity;
@@ -21,7 +20,6 @@ public class EvaluationContextService {
     private final RequestCaseRepository requestCaseRepository;
     private final DemoUserRepository userRepository;
     private final DefinitionService definitionService;
-    private final DerivedFactService derivedFactService;
     private final CalculationService calculationService;
     private final ObjectMapper objectMapper;
 
@@ -29,14 +27,12 @@ public class EvaluationContextService {
             RequestCaseRepository requestCaseRepository,
             DemoUserRepository userRepository,
             DefinitionService definitionService,
-            DerivedFactService derivedFactService,
             CalculationService calculationService,
             ObjectMapper objectMapper
     ) {
         this.requestCaseRepository = requestCaseRepository;
         this.userRepository = userRepository;
         this.definitionService = definitionService;
-        this.derivedFactService = derivedFactService;
         this.calculationService = calculationService;
         this.objectMapper = objectMapper;
     }
@@ -48,8 +44,6 @@ public class EvaluationContextService {
                 .orElseThrow(() -> new IllegalArgumentException("Unknown user: " + userId));
 
         JsonNode requestData = readJson(requestCase.getRequestData());
-        JsonNode rules = definitionService.activeDefinition(requestCase.getRequestType(), DefinitionModuleType.RULES);
-        JsonNode derivedDefinition = definitionService.activeDefinition(requestCase.getRequestType(), DefinitionModuleType.DERIVED_FACTS);
         JsonNode calculationDefinition = definitionService.activeDefinition(requestCase.getRequestType(), DefinitionModuleType.CALCULATIONS);
 
         ObjectNode context = objectMapper.createObjectNode();
@@ -62,11 +56,9 @@ public class EvaluationContextService {
         context.set("calculations", objectMapper.createObjectNode());
         context.set("evaluation", evaluationNode(requestCase.getRequestType(), scope));
 
-        JsonNode derived = derivedFactService.derive(derivedDefinition, context, rules);
-        context.set("derived", derived);
-        JsonNode calculations = calculationService.calculationContext(requestCase.getId(), calculationDefinition, context);
+        JsonNode calculations = calculationService.calculationContext(requestCase.getId(), requestCase.getRequestType(), calculationDefinition, context);
         context.set("calculations", calculations);
-        return new RuntimeBundle(requestCase, user, context, rules);
+        return new RuntimeBundle(requestCase, user, context);
     }
 
     private ObjectNode userNode(DemoUserEntity user) {
@@ -104,4 +96,3 @@ public class EvaluationContextService {
         }
     }
 }
-

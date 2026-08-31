@@ -74,7 +74,7 @@ describe("evaluateUiDefinition", () => {
         canEditInvestmentReview: { result: false, trace: [] },
         canEditRiskReview: { result: true, trace: [] },
         showRiskOfficerConfirmations: { result: true, trace: [] },
-        requireCompanyProfileRiskNote: { result: true, trace: [] },
+        showCompanyProfileRiskNote: { result: true, trace: [] },
       },
     });
     const referBackCompanyPage = referBackPages.find((page) => page.id === "companyProfile")!;
@@ -83,6 +83,41 @@ describe("evaluateUiDefinition", () => {
 
     expect(note.visible).toBe(true);
     expect(note.required).toBe(true);
+  });
+
+  it("keeps visible risk confirmations required during final approval", () => {
+    const pages = evaluateUiDefinition(startupInvestmentUiDefinition.pages, {
+      ...context,
+      workflowState: "PENDING_RISK_APPROVAL",
+      user: { ...context.user, role: "RiskOfficer", entitlements: ["APPROVE_FINAL_REQUEST"] },
+      ruleResults: {
+        ...context.ruleResults,
+        canEditInvestmentReview: { result: false, trace: [] },
+        canEditRiskReview: { result: false, trace: [] },
+        showRiskOfficerConfirmations: { result: true, trace: [] },
+      },
+    });
+    const companyPage = pages.find((page) => page.id === "companyProfile")!;
+    const confirmationSection = companyPage.children?.find((node) => node.id === "companyProfileRiskConfirmationSection")!;
+    const confirmation = confirmationSection.children?.find((node) => node.id === "companyProfileRiskConfirmation")!;
+
+    expect(confirmation.visible).toBe(true);
+    expect(confirmation.disabled).toBe(true);
+    expect(confirmation.required).toBe(true);
+  });
+
+  it("requires analyst exception confirmation only when risk confirmation rules apply", () => {
+    const analystPages = evaluateUiDefinition(startupInvestmentUiDefinition.pages, context);
+    const riskPages = evaluateUiDefinition(startupInvestmentUiDefinition.pages, {
+      ...context,
+      ruleResults: { ...context.ruleResults, showRiskOfficerConfirmations: { result: true, trace: [] } },
+    });
+
+    const analystExceptions = analystPages.find((page) => page.id === "riskExceptions")?.children?.find((node) => node.id === "analystExceptions");
+    const riskExceptions = riskPages.find((page) => page.id === "riskExceptions")?.children?.find((node) => node.id === "analystExceptions");
+
+    expect(analystExceptions?.requiredFields).toEqual(["description", "severity"]);
+    expect(riskExceptions?.requiredFields).toEqual(["description", "severity", "riskConfirmation"]);
   });
 
   it("hides risk-only pages and collections from the investment analyst", () => {
@@ -105,9 +140,9 @@ describe("evaluateUiDefinition", () => {
     });
 
     expect(analystPages.find((page) => page.id === "enhancedRiskReview")?.visible).toBe(false);
-    expect(analystPages.find((page) => page.id === "riskExceptions")?.children?.find((node) => node.id === "riskExceptions")?.visible).toBe(false);
+    expect(analystPages.find((page) => page.id === "riskExceptions")?.children?.find((node) => node.id === "riskOfficerExceptions")?.visible).toBe(false);
     expect(riskPages.find((page) => page.id === "enhancedRiskReview")?.visible).toBe(true);
-    expect(riskPages.find((page) => page.id === "riskExceptions")?.children?.find((node) => node.id === "riskExceptions")?.visible).toBe(true);
+    expect(riskPages.find((page) => page.id === "riskExceptions")?.children?.find((node) => node.id === "riskOfficerExceptions")?.visible).toBe(true);
   });
 
   it("evaluates frontend-owned UI config with backend-provided rule results", () => {

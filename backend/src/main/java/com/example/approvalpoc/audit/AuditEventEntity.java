@@ -36,5 +36,8 @@ public class AuditEventEntity {
         this.detailsJson = detailsJson;
         this.createdAt = createdAt;
     }
-}
 
+    public String getDetailsJson() {
+        return detailsJson;
+    }
+}

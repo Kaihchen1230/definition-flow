@@ -1,5 +1,6 @@
-import type { EvaluationContext, RuleEvaluationResult, UiNode } from "../types/api";
+import type { EvaluationContext, RuleEvaluationResult, UiNode, UiRuleReference } from "../types/api";
 import type { UiConfigNode } from "../config/uiDefinition";
+import { enumOptions } from "../config/enumOptions";
 import { getPath } from "./objectPath";
 
 const defaultRuleResult = (result: boolean): RuleEvaluationResult => ({
@@ -7,11 +8,11 @@ const defaultRuleResult = (result: boolean): RuleEvaluationResult => ({
   trace: [],
 });
 
-const evaluateRuleReference = (ruleId: string | null, context: EvaluationContext, defaultResult: boolean) => {
-  if (!ruleId) {
+const evaluateRuleReference = (rule: UiRuleReference, context: EvaluationContext, defaultResult: boolean) => {
+  if (!rule) {
     return defaultRuleResult(defaultResult);
   }
-  return context.ruleResults[ruleId] ?? defaultRuleResult(false);
+  return context.ruleResults[rule] ?? defaultRuleResult(false);
 };
 
 const evaluateNode = (node: UiConfigNode, context: EvaluationContext, parentVisible: boolean, parentEnabled: boolean): UiNode => {
@@ -20,6 +21,10 @@ const evaluateNode = (node: UiConfigNode, context: EvaluationContext, parentVisi
   const requiredRule = evaluateRuleReference(node.requiredRule, context, false);
   const visible = parentVisible && visibleRule.result;
   const enabled = parentEnabled && enabledRule.result;
+  const options = node.dataPath ? enumOptions[node.dataPath] : undefined;
+  const conditionalRequiredFields = Object.entries(node.requiredFieldRules ?? {})
+    .filter(([, rule]) => evaluateRuleReference(rule, context, false).result)
+    .map(([field]) => field);
 
   return {
     ...node,
@@ -27,6 +32,10 @@ const evaluateNode = (node: UiConfigNode, context: EvaluationContext, parentVisi
     enabled,
     disabled: !enabled,
     required: node.required || requiredRule.result,
+    requiredFields: [...new Set([...(node.requiredFields ?? []), ...conditionalRequiredFields])],
+    constraints: options
+      ? { ...node.constraints, allowedValues: options.map((option) => option.value) }
+      : node.constraints,
     debug: {
       visibleRule,
       enabledRule,

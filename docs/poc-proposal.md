@@ -12,7 +12,7 @@ The reusable value is not the existing credit request UI itself. The reusable va
 
 - request lifecycle
 - role and entitlement-aware UI behavior
-- backend-authoritative validation
+- immediate frontend-owned validation and action eligibility for the internal-app POC
 - workflow transitions
 - action permissions
 - audit
@@ -29,14 +29,16 @@ The POC uses a synthetic Startup Investment Approval Request.
 Demo users:
 
 - InvestmentAnalyst
-- InvestmentApprover
+- InvestmentApprover (Levels 1–3)
 - RiskOfficer
-- RiskApprover
+- RiskApprover (Levels 1–4)
 - SupportViewer
 
 Routing paths:
 
-- Every request routes from Investment Analyst to Investment Approver, then Risk Officer, then Risk Approver.
+- The Investment Analyst manually selects one or more of three investment approval levels.
+- The Risk Officer manually selects one or more of four risk approval levels.
+- Each selected level approves once in ascending order; unselected levels are skipped.
 - High risk activates enhanced risk inputs and validation; it does not skip an approval stage.
 - High risk means amount at least $5M, Seed or Pre-revenue stage, or a material exception.
 
@@ -44,9 +46,9 @@ Workflow states:
 
 - DRAFT
 - INVESTMENT_REVIEW
-- PENDING_INVESTMENT_APPROVAL
+- PENDING_INVESTMENT_APPROVAL_LEVEL_1/2/3
 - RISK_REVIEW
-- PENDING_RISK_APPROVAL
+- PENDING_RISK_APPROVAL_LEVEL_1/2/3/4
 - APPROVED
 - DECLINED
 - WITHDRAWN
@@ -62,8 +64,10 @@ The POC demonstrates:
 - role-authored data partitioning
 - user confirmation pattern
 - derived investment variant
-- manual approval route calculation
-- stale calculation tracking
+- manual approval-requirement selection
+- level-specific workflow actions and approver entitlements
+- a calculation-engine adapter seam representing future lending-rule-engine integration
+- backend-definition and frontend-rule version traceability
 - inline required-field validation with page completion indicators
 - rule evaluation trace/debug panel
 - Postgres persistence and audit
@@ -76,6 +80,7 @@ The POC demonstrates:
 - production memo generation
 - file upload
 - real Kogito integration
+- real lending-rule-engine transport and authentication integration
 - real enterprise authentication/authorization integration
 - generic Power Apps-style low-code platform
 
@@ -93,10 +98,6 @@ Backend modules:
 
 - Request Case Repository
 - Definition Repository
-- Predicate Rule Evaluator
-- Derived Fact Engine
-- UI Evaluation Engine
-- Validation Engine
 - Action Registry
 - Calculation Engine
 - Workflow Adapter
@@ -109,4 +110,4 @@ Memo generation is part of the target architecture but not the initial working s
 
 ## Success Criteria
 
-The POC is successful if it can show a new startup investment approval flow driven by definitions, with backend-authoritative behavior and enough workflow/action complexity to prove this is an approval platform, not just a form renderer.
+The POC is successful if it can show a new startup investment approval flow driven by frontend-owned rules and backend workflow/persistence modules, with enough workflow/action complexity to prove this is an approval platform, not just a form renderer.
