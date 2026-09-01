@@ -97,13 +97,15 @@ const evaluatedUi: EvaluatedUi = {
   },
 };
 
+const navigationGroupsFor = (pages: EvaluatedUi["pages"]) => [{ id: "request", label: "Request", pages }];
+
 const renderWorkbench = () => {
   const store = createStore();
   return render(
     <Provider store={store}>
       <RequestWorkbench
         evaluated={evaluatedUi}
-        pagesConfig={evaluatedUi.pages}
+        navigationGroups={navigationGroupsFor(evaluatedUi.pages)}
         selectedPage={evaluatedUi.pages[0]}
         selectedPageId="investmentTerms"
         setSelectedPageId={vi.fn()}
@@ -113,13 +115,18 @@ const renderWorkbench = () => {
   );
 };
 
-const renderWorkbenchWith = (ui: EvaluatedUi, selectedPageId = ui.pages[0].id, setSelectedPageId = vi.fn()) => {
+const renderWorkbenchWith = (
+  ui: EvaluatedUi,
+  selectedPageId = ui.pages[0].id,
+  setSelectedPageId = vi.fn(),
+  navigationGroups = navigationGroupsFor(ui.pages)
+) => {
   const store = createStore();
-  return render(
+  const view = render(
     <Provider store={store}>
       <RequestWorkbench
         evaluated={ui}
-        pagesConfig={ui.pages}
+        navigationGroups={navigationGroups}
         selectedPage={ui.pages.find((page) => page.id === selectedPageId)}
         selectedPageId={selectedPageId}
         setSelectedPageId={setSelectedPageId}
@@ -127,6 +134,7 @@ const renderWorkbenchWith = (ui: EvaluatedUi, selectedPageId = ui.pages[0].id, s
       />
     </Provider>
   );
+  return { ...view, store };
 };
 
 describe("RequestWorkbench validation mode", () => {
@@ -446,6 +454,106 @@ describe("RequestWorkbench validation mode", () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
+  it("renders grouped pages, protects the active group, and toggles inactive groups", async () => {
+    const user = userEvent.setup();
+    const companyProfile = { ...evaluatedUi.pages[0], id: "companyProfile", label: "Company Profile" };
+    const foundersOwnership = emptyPage("foundersOwnership", "Founders & Ownership");
+    const riskExceptions = requiredPage("riskExceptions", "Risk & Exceptions", "risk.missing");
+    const ui = { ...evaluatedUi, pages: [companyProfile, foundersOwnership, riskExceptions] };
+    const setSelectedPageId = vi.fn();
+    const navigationGroups = [
+      { id: "company", label: "Company", pages: [companyProfile, foundersOwnership] },
+      { id: "riskReview", label: "Risk Review", pages: [riskExceptions] },
+    ];
+
+    renderWorkbenchWith(ui, "companyProfile", setSelectedPageId, navigationGroups);
+
+    expect(screen.getByRole("button", { name: /Company Profile/ })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Risk & Exceptions/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "Risk Review, incomplete" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Back" }).hasAttribute("disabled")).toBe(true);
+
+    await user.click(screen.getByRole("button", { name: "Company, complete" }));
+    expect(screen.getByRole("button", { name: /Company Profile/ })).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Risk Review, incomplete" }));
+    expect(setSelectedPageId).toHaveBeenCalledWith("riskExceptions");
+    expect(screen.getByRole("button", { name: /Risk & Exceptions/ })).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Risk Review, incomplete" }));
+    expect(screen.queryByRole("button", { name: /Risk & Exceptions/ })).toBeNull();
+  });
+
+  it("moves Next across a group boundary and disables it on the final page", async () => {
+    const user = userEvent.setup();
+    const companyProfile = emptyPage("companyProfile", "Company Profile");
+    const foundersOwnership = emptyPage("foundersOwnership", "Founders & Ownership");
+    const riskExceptions = emptyPage("riskExceptions", "Risk & Exceptions");
+    const ui = { ...evaluatedUi, pages: [companyProfile, foundersOwnership, riskExceptions] };
+    const setSelectedPageId = vi.fn();
+    const navigationGroups = [
+      { id: "company", label: "Company", pages: [companyProfile, foundersOwnership] },
+      { id: "riskReview", label: "Risk Review", pages: [riskExceptions] },
+    ];
+
+    const firstView = renderWorkbenchWith(ui, "foundersOwnership", setSelectedPageId, navigationGroups);
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(setSelectedPageId).toHaveBeenCalledWith("riskExceptions");
+    firstView.unmount();
+
+    renderWorkbenchWith(ui, "riskExceptions", vi.fn(), navigationGroups);
+    expect(screen.getByRole("button", { name: "Next" }).hasAttribute("disabled")).toBe(true);
+  });
+
+  it("keeps the user on the current page when saving before Next fails", async () => {
+    const user = userEvent.setup();
+    const companyProfile = { ...evaluatedUi.pages[0], id: "companyProfile", label: "Company Profile" };
+    const foundersOwnership = emptyPage("foundersOwnership", "Founders & Ownership");
+    const ui = { ...evaluatedUi, pages: [companyProfile, foundersOwnership] };
+    const setSelectedPageId = vi.fn();
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ message: "Failed" }, { status: 500 })));
+
+    renderWorkbenchWith(ui, "companyProfile", setSelectedPageId, [
+      { id: "company", label: "Company", pages: [companyProfile, foundersOwnership] },
+    ]);
+    fireEvent.change(screen.getByDisplayValue("Acme Robotics"), { target: { value: "Acme Labs" } });
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(await screen.findByText("Page could not be saved. Try again.")).toBeTruthy();
+    expect(setSelectedPageId).not.toHaveBeenCalled();
+  });
+
+  it("resets manually expanded groups when the user changes", async () => {
+    const user = userEvent.setup();
+    const companyProfile = emptyPage("companyProfile", "Company Profile");
+    const riskExceptions = emptyPage("riskExceptions", "Risk & Exceptions");
+    const ui = { ...evaluatedUi, pages: [companyProfile, riskExceptions] };
+    const setSelectedPageId = vi.fn();
+    const navigationGroups = [
+      { id: "company", label: "Company", pages: [companyProfile] },
+      { id: "riskReview", label: "Risk Review", pages: [riskExceptions] },
+    ];
+    const view = renderWorkbenchWith(ui, "companyProfile", setSelectedPageId, navigationGroups);
+
+    await user.click(screen.getByRole("button", { name: "Risk Review, complete" }));
+    expect(screen.getByRole("button", { name: /Risk & Exceptions/ })).toBeTruthy();
+
+    view.rerender(
+      <Provider store={view.store}>
+        <RequestWorkbench
+          evaluated={ui}
+          navigationGroups={navigationGroups}
+          selectedPage={companyProfile}
+          selectedPageId="companyProfile"
+          setSelectedPageId={setSelectedPageId}
+          userId="risk"
+        />
+      </Provider>
+    );
+
+    await waitFor(() => expect(screen.queryByRole("button", { name: /Risk & Exceptions/ })).toBeNull());
+  });
+
   it("allows removing founder rows when the table can add rows", async () => {
     const user = userEvent.setup();
     const ui: EvaluatedUi = {
@@ -494,4 +602,36 @@ describe("RequestWorkbench validation mode", () => {
 
     expect(screen.queryByLabelText("Founder name")).toBeNull();
   });
+});
+
+const emptyPage = (id: string, label: string): EvaluatedUi["pages"][number] => ({
+  id,
+  type: "page",
+  label,
+  visible: true,
+  enabled: true,
+  disabled: false,
+  visibleRule: null,
+  enabledRule: null,
+  required: false,
+  requiredRule: null,
+  children: [],
+});
+
+const requiredPage = (id: string, label: string, dataPath: string): EvaluatedUi["pages"][number] => ({
+  ...emptyPage(id, label),
+  children: [{
+    id: `${id}RequiredField`,
+    type: "field",
+    component: "textInput",
+    label: "Required field",
+    dataPath,
+    visible: true,
+    enabled: true,
+    disabled: false,
+    visibleRule: null,
+    enabledRule: null,
+    required: true,
+    requiredRule: null,
+  }],
 });

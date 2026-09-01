@@ -3,6 +3,7 @@ import type { UiConfigNode } from "../config/uiDefinition";
 import { startupInvestmentUiDefinition } from "../config/uiDefinition";
 import type { EvaluationContext } from "../types/api";
 import { evaluateUiDefinition } from "./evaluateUiDefinition";
+import { flattenNavigationPages } from "./pageNavigation";
 
 const context: EvaluationContext = {
   requestCaseId: "11111111-1111-1111-1111-111111111111",
@@ -35,11 +36,11 @@ describe("evaluateUiDefinition", () => {
       node.actions?.forEach(visit);
     };
 
-    startupInvestmentUiDefinition.pages.forEach(visit);
+    flattenNavigationPages(startupInvestmentUiDefinition.groups).forEach(visit);
   });
 
   it("keeps investment fields read-only while requiring page confirmation from risk", () => {
-    const pages = evaluateUiDefinition(startupInvestmentUiDefinition.pages, {
+    const pages = evaluateUiDefinition(flattenNavigationPages(startupInvestmentUiDefinition.groups), {
       ...context,
       workflowState: "RISK_REVIEW",
       ruleResults: {
@@ -59,7 +60,7 @@ describe("evaluateUiDefinition", () => {
     expect(confirmation.disabled).toBe(false);
     expect(confirmation.required).toBe(true);
 
-    const referBackPages = evaluateUiDefinition(startupInvestmentUiDefinition.pages, {
+    const referBackPages = evaluateUiDefinition(flattenNavigationPages(startupInvestmentUiDefinition.groups), {
       ...context,
       workflowState: "RISK_REVIEW",
       requestData: {
@@ -86,7 +87,7 @@ describe("evaluateUiDefinition", () => {
   });
 
   it("keeps visible risk confirmations required during final approval", () => {
-    const pages = evaluateUiDefinition(startupInvestmentUiDefinition.pages, {
+    const pages = evaluateUiDefinition(flattenNavigationPages(startupInvestmentUiDefinition.groups), {
       ...context,
       workflowState: "PENDING_RISK_APPROVAL",
       user: { ...context.user, role: "RiskOfficer", entitlements: ["APPROVE_FINAL_REQUEST"] },
@@ -107,8 +108,8 @@ describe("evaluateUiDefinition", () => {
   });
 
   it("requires analyst exception confirmation only when risk confirmation rules apply", () => {
-    const analystPages = evaluateUiDefinition(startupInvestmentUiDefinition.pages, context);
-    const riskPages = evaluateUiDefinition(startupInvestmentUiDefinition.pages, {
+    const analystPages = evaluateUiDefinition(flattenNavigationPages(startupInvestmentUiDefinition.groups), context);
+    const riskPages = evaluateUiDefinition(flattenNavigationPages(startupInvestmentUiDefinition.groups), {
       ...context,
       ruleResults: { ...context.ruleResults, showRiskOfficerConfirmations: { result: true, trace: [] } },
     });
@@ -121,7 +122,7 @@ describe("evaluateUiDefinition", () => {
   });
 
   it("hides risk-only pages and collections from the investment analyst", () => {
-    const analystPages = evaluateUiDefinition(startupInvestmentUiDefinition.pages, {
+    const analystPages = evaluateUiDefinition(flattenNavigationPages(startupInvestmentUiDefinition.groups), {
       ...context,
       ruleResults: {
         ...context.ruleResults,
@@ -129,7 +130,7 @@ describe("evaluateUiDefinition", () => {
         showRiskExceptions: { result: false, trace: [] },
       },
     });
-    const riskPages = evaluateUiDefinition(startupInvestmentUiDefinition.pages, {
+    const riskPages = evaluateUiDefinition(flattenNavigationPages(startupInvestmentUiDefinition.groups), {
       ...context,
       user: { ...context.user, role: "RiskOfficer" },
       ruleResults: {

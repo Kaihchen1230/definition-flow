@@ -13,11 +13,14 @@ The POC uses a startup investment approval scenario to demonstrate:
 - backend-owned persistence, workflow state mutation, and audit
 - analyst-selected investment approval levels (three tiers) and risk-officer-selected risk approval levels (four tiers)
 - page-scoped request data saves that patch only the current page's data paths
+- grouped request navigation with aggregate completion and guarded Back/Next page traversal
 - a config-driven Company Profile intake that creates an empty request only after validation, then applies the first page-scoped patch
 
 Teams adapting this POC should start with the [Frontend Reference Implementation Guide](docs/frontend-reference-guide.md), which identifies the reusable evaluator/workbench modules, the domain-specific replacement points, and the trusted-frontend constraint.
 
 The [Internal UI Component Migration Guide](docs/internal-ui-component-migration.md) provides a step-by-step adapter strategy for mapping the semantic renderer IDs to a company's internal React component library without coupling page config or business rules to that library.
+
+The [Grouped Page Navigation Guide](docs/grouped-page-navigation.md) documents the group configuration, disclosure behavior, completion aggregation, and sequential navigation contract.
 
 The [Calculation Engine Integration](docs/calculation-engine-integration.md) documents the retained adapter seam for future lending-rule-engine calculations. Approval routing in the active scenario is intentionally manual.
 

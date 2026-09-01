@@ -39,7 +39,7 @@ Replace these startup-investment examples with domain-specific modules:
 | --- | --- |
 | `rules/startupInvestmentRules.ts` | Capabilities, UI rules, validation, derived facts, and level-specific action-to-rule assignments |
 | `config/pages/*.ts` | One layout/config module for each request page |
-| `config/uiDefinition.ts` | Page ordering and request-type UI assembly |
+| `config/uiDefinition.ts` | Navigation grouping, page ordering, and request-type UI assembly |
 | `config/enumOptions.ts` | Select, radio, and checkbox option catalogs |
 | `features/request-renderer/` | Domain-specific collection renderers; generic field rendering can be reused |
 
@@ -51,13 +51,13 @@ The frontend must increment `frontendRuleCatalogVersion` when a deployed rule ca
 
 Page files under `frontend/src/config/pages/` choose a renderer with the node's `component` property. Allowed component IDs are declared in `frontend/src/types/uiComponents.ts`; `frontend/src/features/request-renderer/componentRegistry.tsx` is the single mapping from those IDs to React renderers. Add a component in both places, then reference its ID from page config.
 
-`frontend/src/config/uiDefinition.ts` validates the assembled definition at startup. It rejects duplicate node IDs and unknown component IDs, rule references, data paths, or option catalogs. This turns a configuration typo into an immediate development error instead of a blank or incorrectly rendered field.
+`frontend/src/config/uiDefinition.ts` validates the assembled definition at startup. It rejects duplicate or empty navigation groups, duplicate node IDs, and unknown component IDs, rule references, data paths, or option catalogs. Group order followed by child-page order defines the navigation sequence. This turns a configuration typo into an immediate development error instead of a blank or incorrectly rendered field.
 
 Field behavior and user-facing guidance belong beside the field configuration. Use `helperText` for field-specific instructions, `constraints` for numeric bounds, dates such as `maxDate: "today"`, and allowed values; use `itemConstraints` and `collectionConstraints` for editable collections. Conditional collection requirements use `requiredFieldRules`. The same evaluated metadata drives HTML input limits, inline invalid styling, page completion, and workflow blocking.
 
 ## Draft and workflow safety
 
-Navigation saves the current page's scoped patch before moving to another request page. Request/user switching, new-request creation, definition reload, and demo reset are disabled while the page has unsaved changes. Workflow transitions enable validation mode and remain blocked until every visible page is complete; API failures are shown in the workbench rather than silently ignored.
+Child links and Back/Next navigation save the current page's scoped patch before moving to another visible request page. The selected page's group remains expanded, group completion aggregates visible child pages, and groups without visible pages are hidden. Request/user switching, new-request creation, definition reload, and demo reset are disabled while the page has unsaved changes. Workflow transitions enable validation mode and remain blocked until every visible page is complete; API failures are shown in the workbench rather than silently ignored. See [Grouped Page Navigation](grouped-page-navigation.md) for the complete interaction contract.
 
 The POC starts with a config-driven Company Profile intake instead of creating a backend record immediately. Once the required fields pass the same semantic completion checks used by the workbench, the frontend creates an empty request using the workflow definition's initial state and immediately applies those values as the first page-scoped patch. If creation succeeds but the patch fails, the frontend retains the created request ID and retries the patch instead of creating duplicates. Seeded scenarios remain available through the request selector.
 

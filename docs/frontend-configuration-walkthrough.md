@@ -345,22 +345,20 @@ Adding a new component requires React code. Switching among existing component I
 
 Open `frontend/src/config/uiDefinition.ts`.
 
-The order of the `pages` array determines the request navigation order:
+The order of `groups`, followed by the order of each group's `pages`, determines the request navigation order:
 
 ```ts
-pages: [
-  companyProfilePage,
-  foundersOwnershipPage,
-  investmentTermsPage,
-  riskExceptionsPage,
-  investmentIndicatorsPage,
-  approvalRequirementsPage,
-  enhancedRiskReviewPage,
-  finalReviewPage,
+groups: [
+  { id: "company", label: "Company", pages: [companyProfilePage, foundersOwnershipPage] },
+  { id: "investment", label: "Investment", pages: [investmentTermsPage, investmentIndicatorsPage] },
+  { id: "riskReview", label: "Risk Review", pages: [riskExceptionsPage, enhancedRiskReviewPage] },
+  { id: "decision", label: "Decision", pages: [approvalRequirementsPage, finalReviewPage] },
 ],
 ```
 
-Moving `foundersOwnershipPage` before `investmentTermsPage` moves the page in the sidebar. The order of `children` inside each page file controls the order of fields and sections on that page.
+Moving a group changes its top-level sidebar placement. Moving a page within or between groups changes both its child placement and its Back/Next position. Groups with no visible child pages are hidden. The order of `children` inside each page file still controls the order of fields and sections on that page.
+
+See [Grouped Page Navigation](grouped-page-navigation.md) for disclosure, completion, save, and accessibility behavior.
 
 This POC supports config-driven ordering, but not an end-user drag-and-drop layout designer. Developers change and deploy the TypeScript configuration.
 
