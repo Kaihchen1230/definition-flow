@@ -126,7 +126,7 @@ Open `frontend/src/config/pages/investmentTerms.ts`:
 
 `currencyInput` displays a localized currency value when idle and a plain numeric value while focused, but continues to store a `number` (or `""` when cleared). Configure the ISO currency code explicitly rather than embedding a symbol in the label or persisted value.
 
-`Field.tsx` renders `helperText` below the configured field. Instructions should be specific to the field; avoid generic implementation language such as “editable request data.”
+Each focused renderer under `frontend/src/features/request-renderer/fields/` renders `helperText` through the shared `FieldPresentation.tsx` helpers. Instructions should be specific to the field; avoid generic implementation language such as “editable request data.”
 
 ## 4. Add or Change a Visibility Rule
 
@@ -263,11 +263,17 @@ Add a derived-fact definition in `frontend/src/rules/startupInvestmentRules.ts`:
 ```ts
 isLargeInvestment: {
   description: "Identifies investments of at least $5 million.",
-  rule: {
-    path: "requestData.investment.amount",
-    op: "gte",
-    value: 5_000_000,
-  },
+  defaultValue: false,
+  cases: [
+    {
+      value: true,
+      when: {
+        path: "requestData.investment.amount",
+        op: "gte",
+        value: 5_000_000,
+      },
+    },
+  ],
 },
 ```
 
@@ -306,21 +312,22 @@ export const uiComponentIds = [
 Create:
 
 ```text
-frontend/src/features/request-renderer/PercentageInput.tsx
+frontend/src/features/request-renderer/fields/percentage/PercentageInputField.tsx
 ```
 
-The component should accept the existing configured-component props and update the draft through `setData`.
+The component should accept `FieldControlProps` from `frontend/src/features/request-renderer/fields/types.ts`. It receives the current scalar `value`, an `onChange` callback, the evaluated node, and invalid state. The shared `configuredField` adapter owns request-data path binding, so the concrete renderer does not read or write the full draft.
 
 ### Step 3: Register the component
 
 Open `frontend/src/features/request-renderer/componentRegistry.tsx`:
 
 ```ts
-import { PercentageInput } from "./PercentageInput";
+import { configuredField } from "./fields/configuredField";
+import { PercentageInputField } from "./fields/percentage/PercentageInputField";
 
 export const componentRegistry = {
   // existing mappings
-  percentageInput: PercentageInput,
+  percentageInput: configuredField(PercentageInputField),
 };
 ```
 
@@ -365,7 +372,15 @@ See [Grouped Page Navigation](grouped-page-navigation.md) for disclosure, comple
 
 This POC supports config-driven ordering, but not an end-user drag-and-drop layout designer. Developers change and deploy the TypeScript configuration.
 
-## 10. Change Workflow Topology
+## 10. Change Demo User Entitlements
+
+The fixed POC identities are seeded in `backend/src/main/java/com/example/approvalpoc/dev/DemoDataService.java`. Keep each identity limited to the permissions needed for its scenario. The current catalog grants decline only to the highest investment and risk approvers, and withdraw only to the investment analyst and risk officer.
+
+Backend startup upserts the ten known demo identities and removes only the two retired generic approver IDs. It preserves unrelated users, requests, calculations, and audit history. The destructive `scripts/reset-demo-data.sh` command remains reserved for deliberately recreating every demo fixture.
+
+The dev users endpoint returns entitlement codes as an array. Add or change readable frontend labels in `frontend/src/config/entitlements.ts`; `AppHeader.tsx` displays the selected user's entitlement summary below the User selector. Rule evaluation continues to use the stable entitlement codes.
+
+## 11. Change Workflow Topology
 
 Example: insert a Compliance Review stage before Risk Review.
 
@@ -409,6 +424,9 @@ The backend determines which transitions are structurally possible. The frontend
 | Dropdown, radio, or checkbox choices | `frontend/src/config/enumOptions.ts` |
 | Allowed component IDs | `frontend/src/types/uiComponents.ts` |
 | Component ID to React component mapping | `frontend/src/features/request-renderer/componentRegistry.tsx` |
+| Scalar field rendering and shared presentation | `frontend/src/features/request-renderer/fields/` |
+| Demo user identities and assigned entitlements | `backend/src/main/java/com/example/approvalpoc/dev/DemoDataService.java` |
+| Human-readable entitlement labels | `frontend/src/config/entitlements.ts` |
 | Visibility, editability, required logic, validation, derived facts, or action eligibility | `frontend/src/rules/startupInvestmentRules.ts` |
 | Rule-expression evaluation behavior | `frontend/src/rules/evaluateRule.ts` |
 | Page ordering and UI-definition assembly | `frontend/src/config/uiDefinition.ts` |
@@ -448,7 +466,7 @@ After changing backend definitions while the local backend is running:
 ./scripts/load-definitions.sh
 ```
 
-Use `./scripts/reset-demo-data.sh` only when the demo request data itself must be recreated. Definition changes do not automatically require a demo reset.
+Backend startup automatically refreshes the ten known demo identities. Use `./scripts/reset-demo-data.sh` only when the demo request data itself must be recreated. Definition changes do not automatically require a demo reset.
 
 ## Recommended Change Sequence
 

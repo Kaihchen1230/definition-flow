@@ -2,8 +2,11 @@ import { useState } from "react";
 import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { UiNode } from "../../types/api";
-import { Field } from "./Field";
+import type { UiNode } from "../../../types/api";
+import { CheckboxGroupField } from "./checkbox/CheckboxGroupField";
+import { CurrencyField } from "./currency/CurrencyField";
+import { DropdownField } from "./dropdown/DropdownField";
+import { RadioGroupField } from "./radio/RadioGroupField";
 
 const fieldNode = (overrides: Partial<UiNode>): UiNode => ({
   id: "indicators",
@@ -24,25 +27,25 @@ const fieldNode = (overrides: Partial<UiNode>): UiNode => ({
 
 afterEach(cleanup);
 
-describe("Field helper text", () => {
+describe("field presentation", () => {
   it("renders helper text from the field config", () => {
-    render(<Field node={fieldNode({})} value={[]} onChange={vi.fn()} />);
+    render(<CheckboxGroupField node={fieldNode({})} value={[]} onChange={vi.fn()} />);
 
     expect(screen.getByText("Select every indicator that applies. Leave all options clear if none apply.")).toBeTruthy();
     expect(screen.queryByText(/approval/i)).toBeNull();
   });
 
   it("explains why a configured field is read-only", () => {
-    render(<Field node={fieldNode({ enabled: false, disabled: true })} value={[]} onChange={vi.fn()} />);
+    render(<CheckboxGroupField node={fieldNode({ enabled: false, disabled: true })} value={[]} onChange={vi.fn()} />);
 
     expect(screen.getByText("Read-only for the current user and request stage.")).toBeTruthy();
   });
 });
 
-describe("field affordances", () => {
+describe("radio group", () => {
   it("explains the SAFE abbreviation with a keyboard-focusable tooltip", () => {
     render(
-      <Field
+      <RadioGroupField
         node={fieldNode({
           id: "investmentInstrument",
           component: "radioGroup",
@@ -59,13 +62,15 @@ describe("field affordances", () => {
     expect(description.textContent).toContain("Simple Agreement for Future Equity");
     expect(help.getAttribute("aria-describedby")).toBe(description.id);
   });
+});
 
+describe("currency field", () => {
   it("formats currency for scanning and exposes an unformatted value while editing", async () => {
     const user = userEvent.setup();
     const CurrencyHarness = () => {
       const [value, setValue] = useState<number | "">(30000000000);
       return (
-        <Field
+        <CurrencyField
           node={fieldNode({
             id: "investmentAmount",
             component: "currencyInput",
@@ -94,13 +99,13 @@ describe("field affordances", () => {
   });
 });
 
-describe("dropdown adapter", () => {
+describe("dropdown field", () => {
   it("stores the configured option value through the active implementation", async () => {
     const user = userEvent.setup();
     const onChange = vi.fn();
 
     render(
-      <Field
+      <DropdownField
         node={fieldNode({
           id: "companySector",
           component: "dropdown",
@@ -128,7 +133,7 @@ describe("dropdown adapter", () => {
 
   it("exposes invalid state through the active implementation", () => {
     render(
-      <Field
+      <DropdownField
         node={fieldNode({
           id: "companySector",
           component: "dropdown",

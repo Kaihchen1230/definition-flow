@@ -44,11 +44,13 @@ component: "radioGroup"
         |
         v
 componentRegistry.tsx
-radioGroup -> ScalarField
+radioGroup -> configuredField(RadioGroupField)
         |
         v
-Field.tsx or an internal field adapter
-radioGroup -> InternalRadioGroup
+fields/radio/RadioGroupField.tsx
+        |
+        v
+internal radio-group implementation
 ```
 
 This boundary keeps the POC portable. A team can replace the design system without rewriting page definitions or business rules.
@@ -60,8 +62,10 @@ This boundary keeps the POC portable. A team can replace the design system witho
 | Page definition | `frontend/src/config/pages/*.ts` | Field identity, semantic component ID, data path, label, rule references, and constraints |
 | Allowed component IDs | `frontend/src/types/uiComponents.ts` | Compile-time list of supported semantic renderer IDs |
 | Registry | `frontend/src/features/request-renderer/componentRegistry.tsx` | Maps a semantic component ID to a React renderer |
-| Data binding | `ScalarField` in `componentRegistry.tsx` | Reads and writes the configured request-data path |
-| Scalar control selection | `frontend/src/features/request-renderer/Field.tsx` | Selects text, date, currency, textarea, dropdown, radio, or checkbox rendering |
+| Data binding | `frontend/src/features/request-renderer/fields/configuredField.tsx` | Adapts the full draft to scalar `value` and `onChange` props |
+| Scalar control selection | `frontend/src/features/request-renderer/componentRegistry.tsx` | Maps each semantic ID directly to its focused field renderer |
+| Shared field presentation | `frontend/src/features/request-renderer/fields/FieldPresentation.tsx` | Keeps labels, helper text, and read-only messaging consistent |
+| Concrete scalar renderers | `frontend/src/features/request-renderer/fields/*/` | Own text, date, currency, textarea, dropdown, radio, or checkbox behavior |
 | Options | `frontend/src/config/enumOptions.ts` | Supplies choices for option-based controls by data path |
 | Rule evaluation | `frontend/src/rules/` and `frontend/src/utils/evaluateUiDefinition.ts` | Resolves visibility, disabled state, required state, and validation before rendering |
 | Layout | React renderer components and CSS | Controls grid, width, spacing, grouping, and responsive behavior |
@@ -77,7 +81,7 @@ The lowest-risk sequence is:
 1. Install and initialize the internal UI library.
 2. Add any required global theme provider at the application boundary.
 3. Create internal adapters for scalar controls.
-4. Preserve the existing `Field` public props.
+4. Preserve the existing `FieldControlProps` interface.
 5. Replace one semantic component at a time.
 6. Add behavior tests for each adapter.
 7. Migrate collection renderers separately.
@@ -134,12 +138,12 @@ Keep `frontend/src/main.tsx` limited to bootstrap wiring. If provider compositio
 
 Also load any required fonts, tokens, icons, or base styles once. Do not import the same global stylesheet from every field adapter.
 
-## Step 3: Preserve the Existing Field Contract
+## Step 3: Preserve the Existing Field-Control Interface
 
-The current renderer calls `Field` with this contract:
+Every focused scalar renderer accepts this interface from `frontend/src/features/request-renderer/fields/types.ts`:
 
 ```ts
-type FieldProps = {
+type FieldControlProps = {
   node: UiNode;
   value: any;
   onChange: (value: any) => void;
@@ -147,41 +151,38 @@ type FieldProps = {
 };
 ```
 
-Preserving this contract allows `ScalarField` and the request-data binding to remain unchanged:
+The shared adapter keeps request-data binding outside every concrete field renderer:
 
 ```tsx
-const ScalarField = ({ node, data, setData, missingPaths, validationActive }: ConfiguredComponentProps) => (
-  <Field
-    node={node}
-    value={node.dataPath ? getPath(data, node.dataPath) : undefined}
-    onChange={(value) => node.dataPath && setData((current) => setPath(current, node.dataPath!, value))}
-    invalid={Boolean(validationActive && node.dataPath && missingPaths?.has(node.dataPath))}
-  />
-);
+textInput: configuredField(TextInputField),
+dateInput: configuredField(DateInputField),
+currencyInput: configuredField(CurrencyField),
 ```
 
 This is an important boundary:
 
-- `ScalarField` owns request-data path binding.
-- `Field` owns presentation and conversion between the internal component API and the stored value.
+- `configuredField` owns request-data path binding.
+- Each focused field renderer owns value conversion and the internal component interface.
+- `FieldPresentation` owns shared labels, helper text, and read-only messaging.
 - Page config owns semantic metadata.
 - Rules own behavior decisions.
 
 ## Step 4: Create Adapters for Internal Controls
 
-You can keep the implementation in `Field.tsx` during the first migration. If the file becomes difficult to scan, create focused adapters under:
+The repository already separates semantic field renderers by control type:
 
 ```text
 frontend/src/features/request-renderer/fields/
-  InternalTextField.tsx
-  InternalDateField.tsx
-  InternalCurrencyField.tsx
-  InternalSelectField.tsx
-  InternalRadioGroupField.tsx
-  InternalCheckboxGroupField.tsx
+  text/TextInputField.tsx
+  date/DateInputField.tsx
+  currency/CurrencyField.tsx
+  textarea/TextareaField.tsx
+  dropdown/DropdownField.tsx
+  radio/RadioGroupField.tsx
+  checkbox/CheckboxGroupField.tsx
 ```
 
-Each adapter should accept the DefinitionFlow field contract and translate it to the internal library contract.
+Replace or delegate from the matching focused renderer. Each renderer should continue to accept `FieldControlProps` and translate that interface to the internal library contract.
 
 ### Text input example
 
@@ -419,7 +420,7 @@ This POC intentionally does not make field width, grid columns, spacing, or plac
 
 Control layout in React and CSS:
 
-- generic field layout in `Field.tsx`, internal adapters, and `frontend/src/styles.css`;
+- generic field presentation in `FieldPresentation.tsx`, focused field renderers, and `frontend/src/styles.css`;
 - section layout in `RenderNode.tsx` and section-specific renderer components;
 - composite layout inside `FoundersTable.tsx`, `ExceptionList.tsx`, or a new domain component.
 
@@ -457,7 +458,7 @@ it("stores the configured value when company stage changes", async () => {
   const onChange = vi.fn();
 
   render(
-    <Field
+    <RadioGroupField
       node={fieldNode({
         component: "radioGroup",
         dataPath: "company.stage",
@@ -568,16 +569,17 @@ Use internal design-system defaults or component-owned code for size, spacing, a
 |---|---|
 | `frontend/package.json` | Add the approved internal UI dependency |
 | `frontend/src/main.tsx` or `frontend/src/app/` | Add a global theme/provider boundary if required |
-| `frontend/src/features/request-renderer/Field.tsx` | Replace native scalar controls or delegate to internal adapters |
-| `frontend/src/features/request-renderer/fields/*` | Optional focused adapters for internal scalar controls |
+| `frontend/src/features/request-renderer/fields/FieldPresentation.tsx` | Preserve shared labels, helper text, and read-only messaging |
+| `frontend/src/features/request-renderer/fields/configuredField.tsx` | Preserve scalar request-data binding |
+| `frontend/src/features/request-renderer/fields/*/*Field.tsx` | Replace or delegate each concrete scalar renderer |
 | `frontend/src/features/request-renderer/FoundersTable.tsx` | Later migration of collection primitives |
 | `frontend/src/features/request-renderer/ExceptionList.tsx` | Later migration of domain-specific exception inputs |
-| `frontend/src/features/request-renderer/componentRegistry.tsx` | Usually unchanged for scalar migration; register only genuinely new semantics |
+| `frontend/src/features/request-renderer/componentRegistry.tsx` | Keep direct semantic-ID-to-renderer mappings; register only genuinely new semantics |
 | `frontend/src/types/uiComponents.ts` | Usually unchanged; add only genuinely new semantic IDs |
 | `frontend/src/config/enumOptions.ts` | Usually unchanged; remains the option source |
 | `frontend/src/config/pages/*.ts` | No migration-only changes expected |
 | `frontend/src/styles.css` | Remove obsolete native styles after migration parity |
-| `frontend/src/features/request-renderer/*.test.tsx` | Add adapter and integration behavior coverage |
+| `frontend/src/features/request-renderer/fields/*.test.tsx` | Add focused renderer and adapter behavior coverage |
 
 The key design principle is simple: page configuration selects a semantic UI capability, and the registry plus adapter layer decides how the company's internal design system implements that capability.
 
