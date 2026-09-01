@@ -4,6 +4,7 @@ export type User = {
   id: string;
   displayName: string;
   role: string;
+  entitlements: string[];
 };
 
 export type DemoRequest = {
@@ -26,6 +27,7 @@ export type FieldConstraints = {
   min?: number;
   max?: number;
   step?: number;
+  currency?: string;
   maxDate?: "today" | string;
   allowedValues?: readonly string[];
 };

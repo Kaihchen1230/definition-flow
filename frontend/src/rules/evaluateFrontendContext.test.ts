@@ -49,6 +49,57 @@ describe("evaluateFrontendContext", () => {
     expect(evaluateFrontendContext(pending).workflowActions.some((action) => action.visible)).toBe(false);
   });
 
+  it("fails closed when a legacy submit action is not mapped to a level entitlement rule", () => {
+    const pending = raw("InvestmentAnalyst");
+    pending.workflowState = "INVESTMENT_REVIEW";
+    pending.user = {
+      userId: "analyst",
+      displayName: "Avery Analyst",
+      role: "InvestmentAnalyst",
+      entitlements: ["EDIT_INVESTMENT_REQUEST"],
+    };
+    pending.requestData.approvalRequirements.investmentLevels = ["LEVEL_1", "LEVEL_3"];
+    pending.workflowActions = [
+      { id: "workflow.submitInvestmentReview", label: "workflow.submitInvestmentReview" },
+    ];
+
+    const action = evaluateFrontendContext(pending).workflowActions[0];
+
+    expect(action.visible).toBe(false);
+    expect(action.enabled).toBe(false);
+    expect(action.label).toBe("Submit for investment approval");
+  });
+
+  it("lets an analyst submit to the first selected queue but not approve it onward", () => {
+    const pending = raw("InvestmentAnalyst");
+    pending.workflowState = "INVESTMENT_REVIEW";
+    pending.user = {
+      userId: "analyst",
+      displayName: "Avery Analyst",
+      role: "InvestmentAnalyst",
+      entitlements: ["EDIT_INVESTMENT_REQUEST"],
+    };
+    pending.requestData.approvalRequirements.investmentLevels = ["LEVEL_1", "LEVEL_3"];
+    pending.workflowActions = [
+      { id: "workflow.submitInvestmentReviewLevel1", label: "workflow.submitInvestmentReviewLevel1" },
+      { id: "workflow.submitInvestmentReviewLevel2", label: "workflow.submitInvestmentReviewLevel2" },
+      { id: "workflow.submitInvestmentReviewLevel3", label: "workflow.submitInvestmentReviewLevel3" },
+    ];
+
+    const submitted = evaluateFrontendContext(pending);
+    expect(submitted.workflowActions.filter((action) => action.visible).map((action) => action.label)).toEqual(["Submit to Investment Level 1"]);
+
+    pending.workflowState = "PENDING_INVESTMENT_APPROVAL_LEVEL_1";
+    pending.workflowActions = [
+      { id: "workflow.approveInvestmentLevel1ToLevel3", label: "workflow.approveInvestmentLevel1ToLevel3" },
+    ];
+
+    const approval = evaluateFrontendContext(pending).workflowActions[0];
+    expect(approval.visible).toBe(false);
+    expect(approval.enabled).toBe(false);
+    expect(approval.label).toBe("Approve Investment Level 1 and continue to Level 3");
+  });
+
   it("requires a note immediately when risk selects Refer back", () => {
     const data = raw();
     data.requestData.risk.pageConfirmations.companyProfile = "REFER_BACK";

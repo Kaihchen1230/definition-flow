@@ -102,6 +102,31 @@ export const startupInvestmentWorkflowActionRules: Record<string, string | null>
   "workflow.withdraw": "canWithdrawRequest",
 };
 
+export const resolveWorkflowActionLabel = (actionId: string, providedLabel: string) => {
+  if (providedLabel.trim() && providedLabel !== actionId) {
+    return providedLabel;
+  }
+  const submit = /^workflow\.submit(Investment|Risk)ReviewLevel(\d)$/.exec(actionId);
+  if (submit) {
+    return `Submit to ${submit[1]} Level ${submit[2]}`;
+  }
+  const approveNext = /^workflow\.approve(Investment|Risk)Level(\d)ToLevel(\d)$/.exec(actionId);
+  if (approveNext) {
+    return `Approve ${approveNext[1]} Level ${approveNext[2]} and continue to Level ${approveNext[3]}`;
+  }
+  const approveComplete = /^workflow\.approve(Investment|Risk)Level(\d)Complete$/.exec(actionId);
+  if (approveComplete) {
+    return `Approve as ${approveComplete[1]} Level ${approveComplete[2]}`;
+  }
+  return {
+    "workflow.startInvestmentReview": "Start investment review",
+    "workflow.submitInvestmentReview": "Submit for investment approval",
+    "workflow.submitRiskReview": "Submit for risk approval",
+    "workflow.decline": "Decline request",
+    "workflow.withdraw": "Withdraw request",
+  }[actionId] ?? "Unavailable action";
+};
+
 function levelCapabilities(area: "Investment" | "Risk", editorRule: string, path: string, statePrefix: string, entitlementPrefix: string, levels: readonly string[]) {
   const capabilities: Record<string, NamedRuleDefinition> = {};
   levels.forEach((level, index) => {

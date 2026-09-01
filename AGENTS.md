@@ -26,6 +26,7 @@ Use this guide when making changes in this repository so the POC stays consisten
 - Put reusable request workbench panels in `frontend/src/features/request-workbench/`.
 - Put the pre-persistence request creation experience in `frontend/src/features/request-intake/`; reuse page config and semantic completion rules, then create the empty request and save the initial page as a scoped patch.
 - Put dynamic request rendering components in `frontend/src/features/request-renderer/`.
+- Map each scalar component ID directly to its focused renderer under `frontend/src/features/request-renderer/fields/`; keep request-data binding in the shared `configuredField` adapter and shared label/helper behavior in `FieldPresentation`.
 - Keep swappable internal UI implementations under `frontend/src/features/request-renderer/fields/`; preserve vendor-neutral semantic component IDs in page config and switch implementations behind a renderer adapter export.
 - Put generic helpers in `frontend/src/utils/`.
 - Prefer named exports for local modules.
@@ -65,6 +66,7 @@ Use this guide when making changes in this repository so the POC stays consisten
 - Keep backend request evaluation context code under request-case packages, not a backend `ui` package.
 - Prefer small services with clear module ownership over shared catch-all utility classes.
 - Keep YAML definition loading deterministic and versioned.
+- Refresh the fixed demo-user catalog on backend startup without resetting request cases, calculations, or audit history; reserve the demo reset endpoint for deliberately recreating all fixture data.
 
 ## Definition Conventions
 

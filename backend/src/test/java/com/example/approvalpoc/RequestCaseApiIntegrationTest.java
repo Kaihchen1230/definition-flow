@@ -1,6 +1,8 @@
 package com.example.approvalpoc;
 
 import com.example.approvalpoc.dev.DemoDataService;
+import com.example.approvalpoc.dev.DemoUserEntity;
+import com.example.approvalpoc.dev.DemoUserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -14,6 +16,9 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -32,12 +37,47 @@ class RequestCaseApiIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private DemoDataService demoDataService;
+
+    @Autowired
+    private DemoUserRepository demoUserRepository;
+
     @BeforeEach
     void setUpDemoData() throws Exception {
         mockMvc.perform(post("/api/dev/definitions/reload/startup-investment"))
                 .andExpect(status().isOk());
         mockMvc.perform(post("/api/dev/demo/reset"))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void demoResetLoadsTheCompleteUserCatalog() throws Exception {
+        mockMvc.perform(get("/api/dev/demo/users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(10)))
+                .andExpect(jsonPath("$[0].id").value("analyst"))
+                .andExpect(jsonPath("$[0].entitlements", hasSize(2)))
+                .andExpect(jsonPath("$[1].id").value("investment-approver-l1"))
+                .andExpect(jsonPath("$[1].entitlements", hasSize(1)))
+                .andExpect(jsonPath("$[3].entitlements", hasItem("DECLINE_REQUEST")))
+                .andExpect(jsonPath("$[4].entitlements", hasItem("WITHDRAW_REQUEST")))
+                .andExpect(jsonPath("$[8].entitlements", hasItem("DECLINE_REQUEST")))
+                .andExpect(jsonPath("$[*].id", hasItem("investment-approver-l3")))
+                .andExpect(jsonPath("$[*].id", hasItem("risk-approver-l4")));
+    }
+
+    @Test
+    void startupUserSyncPreservesUnrelatedUsersAndRemovesKnownLegacyUsers() {
+        demoUserRepository.save(new DemoUserEntity("custom-user", "Custom User", "Support", "[]", "[]"));
+        demoUserRepository.save(new DemoUserEntity("investment-approver", "Legacy Approver", "InvestmentAnalyst", "[]", "[]"));
+
+        demoDataService.syncUsers();
+
+        assertTrue(demoUserRepository.existsById("custom-user"));
+        assertFalse(demoUserRepository.existsById("investment-approver"));
+        assertTrue(demoUserRepository.existsById("investment-approver-l3"));
+        assertTrue(demoUserRepository.existsById("risk-approver-l4"));
     }
 
     @Test

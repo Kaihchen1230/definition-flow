@@ -26,13 +26,17 @@ Prove that a new lending or investment use case can be implemented through modul
 
 The POC uses a synthetic Startup Investment Approval Request.
 
-Demo users:
+Demo entitlements are intentionally sparse:
 
-- InvestmentAnalyst
-- InvestmentApprover (Levels 1–3)
-- RiskOfficer
-- RiskApprover (Levels 1–4)
-- SupportViewer
+- Avery Analyst edits investment requests and may withdraw them.
+- Iris and Imani approve Investment Levels 1 and 2 respectively.
+- Ivan approves Investment Level 3 and may decline requests.
+- Riley Risk Officer edits risk reviews and may withdraw requests.
+- Reese, Rina, and Rafael approve Risk Levels 1–3 respectively.
+- Rowan approves Risk Level 4 and may decline requests.
+- Sam Support Viewer has read-only access.
+
+The selected user's readable entitlement list appears directly below the User control in the frontend so permission changes are visible while exercising the POC.
 
 Routing paths:
 

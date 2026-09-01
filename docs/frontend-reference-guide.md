@@ -47,13 +47,17 @@ The startup investment files are executable examples of the contract. They shoul
 
 The frontend must increment `frontendRuleCatalogVersion` when a deployed rule catalog changes. RTK Query sends that version with mutations so audit events can identify which compiled frontend rules participated in the decision.
 
+Workflow actions fail closed: an action returned by the backend is hidden and disabled unless its ID is mapped to a frontend eligibility rule. Recognized IDs also receive a readable fallback label when a stale or mismatched backend returns the raw action ID as its label. Submitting a review routes it into the first selected approval queue; advancing from that queue requires the matching level approval entitlement.
+
+The User selector displays the selected user's entitlements as readable operational metadata. The dev users endpoint returns entitlements as a string array; frontend labels translate the stable entitlement codes without changing rule evaluation.
+
 ## Component mapping and config validation
 
 Page files under `frontend/src/config/pages/` choose a renderer with the node's `component` property. Allowed component IDs are declared in `frontend/src/types/uiComponents.ts`; `frontend/src/features/request-renderer/componentRegistry.tsx` is the single mapping from those IDs to React renderers. Add a component in both places, then reference its ID from page config.
 
 `frontend/src/config/uiDefinition.ts` validates the assembled definition at startup. It rejects duplicate or empty navigation groups, duplicate node IDs, and unknown component IDs, rule references, data paths, or option catalogs. Group order followed by child-page order defines the navigation sequence. This turns a configuration typo into an immediate development error instead of a blank or incorrectly rendered field.
 
-Field behavior and user-facing guidance belong beside the field configuration. Use `helperText` for field-specific instructions, `constraints` for numeric bounds, dates such as `maxDate: "today"`, and allowed values; use `itemConstraints` and `collectionConstraints` for editable collections. Conditional collection requirements use `requiredFieldRules`. The same evaluated metadata drives HTML input limits, inline invalid styling, page completion, and workflow blocking.
+Field behavior and user-facing guidance belong beside the field configuration. Use `helperText` for field-specific instructions, option `description` for supplemental radio-choice explanations, and `constraints` for numeric bounds, currency codes, dates such as `maxDate: "today"`, and allowed values; use `itemConstraints` and `collectionConstraints` for editable collections. Currency controls format values for display while retaining numeric request data. Conditional collection requirements use `requiredFieldRules`. The same evaluated metadata drives input behavior, inline invalid styling, page completion, and workflow blocking.
 
 ## Draft and workflow safety
 

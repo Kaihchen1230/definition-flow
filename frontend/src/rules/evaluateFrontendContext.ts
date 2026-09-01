@@ -1,6 +1,6 @@
 import type { EvaluationContext, RawEvaluationContext, RuleEvaluationResult, ValidationIssue, WorkflowAction } from "../types/api";
 import { evaluateRule } from "./evaluateRule";
-import { startupInvestmentDerivedFacts, startupInvestmentRules, startupInvestmentWorkflowActionRules } from "./startupInvestmentRules";
+import { resolveWorkflowActionLabel, startupInvestmentDerivedFacts, startupInvestmentRules, startupInvestmentWorkflowActionRules } from "./startupInvestmentRules";
 import type { NamedRuleDefinition, ValidationScope } from "./types";
 
 export const evaluateFrontendContext = (raw: RawEvaluationContext, requestData = raw.requestData): EvaluationContext => {
@@ -26,9 +26,9 @@ export const evaluateFrontendContext = (raw: RawEvaluationContext, requestData =
   }
   const validation = Object.fromEntries((["render", "submit", "riskSubmit", "approve"] as ValidationScope[]).map((scope) => [scope, validationIssues(scope, base, namedRules)])) as EvaluationContext["validation"];
   const workflowActions = raw.workflowActions.map((action): WorkflowAction => {
-    const enabledRule = startupInvestmentWorkflowActionRules[action.id] ?? null;
-    const eligibility = enabledRule ? ruleResults[enabledRule] ?? { result: false, trace: [] } : { result: true, trace: [] };
-    return { id: action.id, label: action.label, enabledRule, visible: eligibility.result, enabled: eligibility.result, disabled: !eligibility.result, debug: { enabledRule: eligibility } };
+    const enabledRule = startupInvestmentWorkflowActionRules[action.id];
+    const eligibility = enabledRule ? ruleResults[enabledRule] ?? { result: false, trace: [] } : { result: false, trace: [] };
+    return { id: action.id, label: resolveWorkflowActionLabel(action.id, action.label), enabledRule: enabledRule ?? null, visible: eligibility.result, enabled: eligibility.result, disabled: !eligibility.result, debug: { enabledRule: eligibility } };
   });
   const canSave = evaluateRule({ or: [{ rule: "canEditInvestmentReview" }, { rule: "canEditRiskReview" }] }, base, namedRules).result;
   return { ...raw, requestData, derived: base.derived, canSave, ruleResults, workflowActions, validation };

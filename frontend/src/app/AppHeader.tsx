@@ -1,3 +1,4 @@
+import { formatEntitlement } from "../config/entitlements";
 import type { DemoRequest, User } from "../types/api";
 
 type AppHeaderProps = {
@@ -22,6 +23,8 @@ export const AppHeader = ({
   users,
 }: AppHeaderProps) => {
   const selectedRequest = requests.find((request) => request.id === requestCaseId);
+  const selectedUser = users.find((user) => user.id === userId);
+  const selectedEntitlements = selectedUser?.entitlements ?? [];
 
   return (
     <header className="app-header">
@@ -46,16 +49,29 @@ export const AppHeader = ({
             ))}
           </select>
         </label>
-        <label className="toolbar-field toolbar-user-field">
-          <span>User</span>
-          <select className="control" value={userId} disabled={hasUnsavedChanges} onChange={(event) => onUserChange(event.target.value)}>
+        <div className="toolbar-field toolbar-user-field">
+          <label htmlFor="acting-user">User</label>
+          <select id="acting-user" className="control" value={userId} disabled={hasUnsavedChanges} onChange={(event) => onUserChange(event.target.value)}>
             {users.map((user) => (
               <option value={user.id} key={user.id}>
                 {user.displayName} ({formatRoleName(user.role)})
               </option>
             ))}
           </select>
-        </label>
+          {selectedUser ? (
+            <div className="toolbar-entitlements" aria-live="polite">
+              <span>Entitlements</span>
+              <ul aria-label={`Entitlements for ${selectedUser.displayName}`}>
+                {selectedEntitlements.map((entitlement) => (
+                  <li key={entitlement} title={entitlement}>
+                    {formatEntitlement(entitlement)}
+                    <span className="sr-only"> ({entitlement})</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </div>
         {selectedRequest ? <p className="toolbar-scenario">{selectedRequest.scenario}</p> : <span />}
         <div className="toolbar-actions">
           {requestCaseId ? <button className="button" onClick={onStartNewRequest} disabled={hasUnsavedChanges}>New request</button> : null}

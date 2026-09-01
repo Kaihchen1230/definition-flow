@@ -186,7 +186,7 @@ describe("RequestWorkbench validation mode", () => {
     expect(requestBodies[0]).toEqual({
       updates: [{ path: "company.name", value: "Acme Robotics" }],
     });
-    expect(frontendRuleCatalogVersions).toEqual(["startup-investment-rules-v5"]);
+    expect(frontendRuleCatalogVersions).toEqual(["startup-investment-rules-v6"]);
   });
 
   it("shows a visible error when the current page cannot be saved", async () => {

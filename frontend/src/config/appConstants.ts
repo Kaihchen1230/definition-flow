@@ -1,2 +1,2 @@
 export const showEvaluationTrace = false;
-export const frontendRuleCatalogVersion = "startup-investment-rules-v5";
+export const frontendRuleCatalogVersion = "startup-investment-rules-v6";

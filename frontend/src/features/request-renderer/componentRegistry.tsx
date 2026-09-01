@@ -1,30 +1,16 @@
-import type { ComponentType, Dispatch, SetStateAction } from "react";
-import type { UiNode } from "../../types/api";
+import type { ComponentType } from "react";
 import type { UiComponentId } from "../../types/uiComponents";
-import { getPath, setPath } from "../../utils/objectPath";
 import { ExceptionList } from "./ExceptionList";
-import { Field } from "./Field";
+import { CheckboxGroupField } from "./fields/checkbox/CheckboxGroupField";
+import { configuredField } from "./fields/configuredField";
+import { CurrencyField } from "./fields/currency/CurrencyField";
+import { DateInputField } from "./fields/date/DateInputField";
+import { DropdownField } from "./fields/dropdown/DropdownField";
+import { RadioGroupField } from "./fields/radio/RadioGroupField";
+import { TextInputField } from "./fields/text/TextInputField";
+import { TextareaField } from "./fields/textarea/TextareaField";
 import { FoundersTable } from "./FoundersTable";
-
-export type ConfiguredComponentProps = {
-  node: UiNode;
-  data: Record<string, any>;
-  setData: Dispatch<SetStateAction<Record<string, any>>>;
-  userId: string;
-  userRole: string;
-  runAction: (id: string) => void;
-  missingPaths?: Set<string>;
-  validationActive?: boolean;
-};
-
-const ScalarField = ({ node, data, setData, missingPaths, validationActive }: ConfiguredComponentProps) => (
-  <Field
-    node={node}
-    value={node.dataPath ? getPath(data, node.dataPath) : undefined}
-    onChange={(value) => node.dataPath && setData((current) => setPath(current, node.dataPath!, value))}
-    invalid={Boolean(validationActive && node.dataPath && missingPaths?.has(node.dataPath))}
-  />
-);
+import type { ConfiguredComponentProps } from "./types";
 
 const Founders = ({ node, data, setData, missingPaths, validationActive }: ConfiguredComponentProps) => (
   <FoundersTable node={node} data={data} setData={setData} missingPaths={missingPaths} validationActive={validationActive} />
@@ -39,13 +25,13 @@ const FinalReviewSummary = ({ data, userRole }: ConfiguredComponentProps) => (
 );
 
 export const componentRegistry = {
-  textInput: ScalarField,
-  dateInput: ScalarField,
-  currencyInput: ScalarField,
-  textarea: ScalarField,
-  dropdown: ScalarField,
-  radioGroup: ScalarField,
-  checkboxGroup: ScalarField,
+  textInput: configuredField(TextInputField),
+  dateInput: configuredField(DateInputField),
+  currencyInput: configuredField(CurrencyField),
+  textarea: configuredField(TextareaField),
+  dropdown: configuredField(DropdownField),
+  radioGroup: configuredField(RadioGroupField),
+  checkboxGroup: configuredField(CheckboxGroupField),
   editableTable: Founders,
   exceptionList: Exceptions,
   finalReviewSummary: FinalReviewSummary,

@@ -10,7 +10,7 @@ const requests = [{
   workflowState: "DRAFT",
 }];
 
-const users = [{ id: "risk", displayName: "Riley Risk", role: "RiskOfficer" }];
+const users = [{ id: "risk", displayName: "Riley Risk", role: "RiskOfficer", entitlements: ["EDIT_RISK_REVIEW", "WITHDRAW_REQUEST"] }];
 
 describe("AppHeader", () => {
   afterEach(cleanup);
@@ -36,6 +36,8 @@ describe("AppHeader", () => {
     expect(screen.getByText("Case 11111111")).toBeTruthy();
     expect(screen.getByRole("option", { name: "Acme Robotics (11111111)" })).toBeTruthy();
     expect(screen.getByRole("option", { name: "Riley Risk (Risk Officer)" })).toBeTruthy();
+    expect(screen.getByRole("list", { name: "Entitlements for Riley Risk" }).textContent).toContain("Edit risk review");
+    expect(screen.getByRole("list", { name: "Entitlements for Riley Risk" }).textContent).toContain("Withdraw request");
     expect(screen.getByText("Existing request")).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText("Request"), { target: { value: requests[0].id } });
