@@ -56,7 +56,7 @@ frontend/src/utils/                       Generic helpers
 
 DSL stands for Domain-Specific Language. It is a small language designed for one problem area instead of a general-purpose programming language like Java or TypeScript.
 
-In this POC, the rule DSL is a typed TypeScript object format used to describe approval-platform decisions predictably. For example, `startupInvestmentRules.ts` says that a user may approve only when the workflow is in the right state and the user has the right entitlement.
+In this POC, the rule DSL is a typed TypeScript object format used to describe approval-platform decisions predictably. For example, `rules/startup-investment/capabilities.ts` says that a user may approve only when the workflow is in the right state and the user has the right entitlement. The domain's `index.ts` assembles the focused rule modules into one catalog for callers.
 
 One frontend evaluator handles boolean composition, predicates, named references, and per-item collection rules for UI behavior, validation, workflow actions, and derived facts. The backend intentionally does not duplicate this evaluator for the internal-app POC.
 

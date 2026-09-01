@@ -104,7 +104,7 @@ The Company Profile demonstrates a complete conditional-field setup. When `compa
 
 The behavior is connected in four places:
 
-1. `startupInvestmentRules.ts` defines `showOtherCompanySector` from the selected sector and a blocking `companySectorOtherRequired` validation rule.
+1. `startup-investment/uiRules.ts` defines `showOtherCompanySector`, while `startup-investment/validationRules.ts` defines the blocking `companySectorOtherRequired` rule.
 2. `companyProfile.ts` assigns the same UI rule to both `visibleRule` and `requiredRule` on the text field. This keeps visibility, the required marker, and page completion synchronized.
 3. `startupInvestmentDataPaths.ts` and `data-schema.yaml` declare the persisted `company.sectorOther` path.
 4. Request intake derives its page patch from visible evaluated nodes, so the conditional path is included only while the field is displayed.
@@ -145,7 +145,7 @@ Each focused renderer under `frontend/src/features/request-renderer/fields/` ren
 
 Example: only show **Risk Indicators** for Seed and Pre-revenue companies.
 
-First, add a named rule under `uiRules` in `frontend/src/rules/startupInvestmentRules.ts`:
+First, add a named rule in `frontend/src/rules/startup-investment/uiRules.ts`:
 
 ```ts
 showRiskIndicators: {
@@ -176,7 +176,7 @@ export const investmentIndicatorsPage = {
 The relationship is:
 
 ```text
-startupInvestmentRules.ts
+startup-investment/uiRules.ts
 showRiskIndicators
         |
         v
@@ -190,7 +190,7 @@ Startup validation reports an error if a page references a rule ID that does not
 
 Example: only investment analysts can edit the investment amount during Investment Review.
 
-Define a capability in `frontend/src/rules/startupInvestmentRules.ts`:
+Define a capability in `frontend/src/rules/startup-investment/capabilities.ts`:
 
 ```ts
 canEditInvestmentAmount: {
@@ -229,7 +229,7 @@ When the rule evaluates to `false`, the component becomes read-only immediately 
 
 Example: require **Planned Use of Funds** when the investment exceeds $1 million.
 
-Add a validation rule under `validationRules` in `frontend/src/rules/startupInvestmentRules.ts`:
+Add a validation rule in `frontend/src/rules/startup-investment/validationRules.ts`:
 
 ```ts
 useOfFundsRequiredForLargeInvestment: {
@@ -271,7 +271,7 @@ Do not rely on a validation rule alone if the UI must display the field as requi
 
 Example: classify an investment as large when its amount is at least $5 million.
 
-Add a derived-fact definition in `frontend/src/rules/startupInvestmentRules.ts`:
+Add a derived-fact definition in `frontend/src/rules/startup-investment/derivedFacts.ts`:
 
 ```ts
 isLargeInvestment: {
@@ -422,7 +422,7 @@ transitions:
 After changing the topology:
 
 1. Add user-facing labels for the new transition IDs in the backend evaluation service.
-2. Add frontend action-eligibility rules in `frontend/src/rules/startupInvestmentRules.ts`.
+2. Add frontend action-eligibility mappings in `frontend/src/rules/startup-investment/workflowActionRules.ts`.
 3. Add any Compliance Review page configuration and component mappings.
 4. Add or update tests for the transition topology and frontend action eligibility.
 5. Reload the backend definitions.
@@ -440,7 +440,7 @@ The backend determines which transitions are structurally possible. The frontend
 | Scalar field rendering and shared presentation | `frontend/src/features/request-renderer/fields/` |
 | Demo user identities and assigned entitlements | `backend/src/main/java/com/example/approvalpoc/dev/DemoDataService.java` |
 | Human-readable entitlement labels | `frontend/src/config/entitlements.ts` |
-| Visibility, editability, required logic, validation, derived facts, or action eligibility | `frontend/src/rules/startupInvestmentRules.ts` |
+| Visibility, editability, required logic, validation, derived facts, or action eligibility | `frontend/src/rules/startup-investment/` |
 | Rule-expression evaluation behavior | `frontend/src/rules/evaluateRule.ts` |
 | Page ordering and UI-definition assembly | `frontend/src/config/uiDefinition.ts` |
 | Data paths recognized by frontend configuration | `frontend/src/config/startupInvestmentDataPaths.ts` |

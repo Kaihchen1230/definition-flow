@@ -1,6 +1,6 @@
 import type { EvaluationContext, RawEvaluationContext, RuleEvaluationResult, ValidationIssue, WorkflowAction } from "../types/api";
 import { evaluateRule } from "./evaluateRule";
-import { resolveWorkflowActionLabel, startupInvestmentDerivedFacts, startupInvestmentRules, startupInvestmentWorkflowActionRules } from "./startupInvestmentRules";
+import { resolveWorkflowActionLabel, startupInvestmentDerivedFacts, startupInvestmentRules, startupInvestmentWorkflowActionRules } from "./startup-investment";
 import type { NamedRuleDefinition, ValidationScope } from "./types";
 
 export const evaluateFrontendContext = (raw: RawEvaluationContext, requestData = raw.requestData): EvaluationContext => {

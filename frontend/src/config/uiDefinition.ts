@@ -1,6 +1,6 @@
 import type { UiNode } from "../types/api";
 import { uiComponentIds } from "../types/uiComponents";
-import { startupInvestmentRules } from "../rules/startupInvestmentRules";
+import { startupInvestmentRules } from "../rules/startup-investment";
 import { enumOptions } from "./enumOptions";
 import { approvalRequirementsPage } from "./pages/approvalRequirements";
 import { companyProfilePage } from "./pages/companyProfile";
