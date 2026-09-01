@@ -65,6 +65,7 @@ Use this guide when making changes in this repository so the POC stays consisten
 - Keep backend request evaluation context code under request-case packages, not a backend `ui` package.
 - Prefer small services with clear module ownership over shared catch-all utility classes.
 - Keep YAML definition loading deterministic and versioned.
+- Refresh the fixed demo-user catalog on backend startup without resetting request cases, calculations, or audit history; reserve the demo reset endpoint for deliberately recreating all fixture data.
 
 ## Definition Conventions
 

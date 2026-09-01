@@ -84,6 +84,8 @@ Load or reload definitions through the backend dev endpoint:
 ./scripts/reset-demo-data.sh
 ```
 
+Backend startup automatically refreshes the fixed catalog of ten demo users without changing request cases, calculations, or audit history. Run `reset-demo-data.sh` only when the three seeded request cases and their related data must also be recreated.
+
 Run the frontend:
 
 ```bash

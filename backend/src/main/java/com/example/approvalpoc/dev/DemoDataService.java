@@ -20,6 +20,7 @@ public class DemoDataService {
     public static final UUID STANDARD_REQUEST_ID = UUID.fromString("22222222-2222-2222-2222-222222222222");
     public static final UUID MATERIAL_EXCEPTION_REQUEST_ID = UUID.fromString("33333333-3333-3333-3333-333333333333");
     private static final List<UUID> DEMO_REQUEST_IDS = List.of(DEMO_REQUEST_ID, STANDARD_REQUEST_ID, MATERIAL_EXCEPTION_REQUEST_ID);
+    private static final List<String> LEGACY_DEMO_USER_IDS = List.of("investment-approver", "risk-approver");
     private final DemoUserRepository userRepository;
     private final RequestCaseRepository requestCaseRepository;
     private final CalculationResultRepository calculationResultRepository;
@@ -58,6 +59,13 @@ public class DemoDataService {
                 "requests", DEMO_REQUEST_IDS.size(),
                 "users", userRepository.findAll().size()
         );
+    }
+
+    @Transactional
+    public int syncUsers() {
+        userRepository.deleteAllById(LEGACY_DEMO_USER_IDS);
+        seedUsers();
+        return 10;
     }
 
     public List<DemoRequestSummary> requests() {
