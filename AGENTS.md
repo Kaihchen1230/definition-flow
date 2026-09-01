@@ -70,7 +70,7 @@ Use this guide when making changes in this repository so the POC stays consisten
 
 ## Definition Conventions
 
-- `frontend/src/rules/startupInvestmentRules.ts`: frontend-owned decision, capability, validation, derived-fact, and calculation-dependency config.
+- `frontend/src/rules/startup-investment/`: frontend-owned startup-investment rule domain, split by capability, UI, validation, derived-fact, and workflow-action responsibility; `index.ts` is the public assembly module.
 - `frontend/src/rules/evaluateRule.ts`: the single TypeScript DSL evaluator used by the UI.
 - `workflow.yaml`: workflow/state-machine DSL.
 - `frontend/src/config/uiDefinition.ts`: frontend UI definition assembly and shared UI config types.

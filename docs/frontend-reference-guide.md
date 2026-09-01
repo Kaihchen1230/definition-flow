@@ -37,7 +37,7 @@ Replace these startup-investment examples with domain-specific modules:
 
 | Example module | Team-owned replacement |
 | --- | --- |
-| `rules/startupInvestmentRules.ts` | Capabilities, UI rules, validation, derived facts, and level-specific action-to-rule assignments |
+| `rules/startup-investment/` | Focused capability, UI, validation, derived-fact, and workflow-action modules assembled by `index.ts` |
 | `config/pages/*.ts` | One layout/config module for each request page |
 | `config/uiDefinition.ts` | Navigation grouping, page ordering, and request-type UI assembly |
 | `config/enumOptions.ts` | Select, radio, and checkbox option catalogs |
