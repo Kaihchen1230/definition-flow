@@ -65,8 +65,16 @@ export type FrontendRuleDefinition = {
   validationRules: Record<string, ValidationRuleDefinition>;
 };
 
+/**
+ * Defines a reusable value calculated from the current evaluation context.
+ * Cases are checked in order; the first matching `when` supplies the value.
+ * The default is used when no case matches.
+ */
 export type DerivedFactDefinition = {
+  /** Explains the business meaning of the calculated value. */
   description: string;
+  /** Fallback value returned when none of the configured cases match. */
   defaultValue: unknown;
+  /** Ordered candidate values and the rule that activates each one. */
   cases: Array<{ value: unknown; when: RuleNode }>;
 };
