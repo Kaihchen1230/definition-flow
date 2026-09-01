@@ -38,9 +38,9 @@ export const AppHeader = ({
         </p>
       </div>
       <div className="app-toolbar">
-        <label className="toolbar-field toolbar-request-field">
-          <span>Request</span>
-          <select className="control" value={requestCaseId} disabled={hasUnsavedChanges} onChange={(event) => onRequestChange(event.target.value)}>
+        <div className="toolbar-field toolbar-request-field">
+          <label htmlFor="active-request">Request</label>
+          <select id="active-request" className="control" value={requestCaseId} disabled={hasUnsavedChanges} onChange={(event) => onRequestChange(event.target.value)}>
             {!requestCaseId ? <option value="">Open an existing request</option> : null}
             {requests.map((request) => (
               <option value={request.id} key={request.id}>
@@ -48,7 +48,8 @@ export const AppHeader = ({
               </option>
             ))}
           </select>
-        </label>
+          {selectedRequest ? <p className="toolbar-scenario">{selectedRequest.scenario}</p> : null}
+        </div>
         <div className="toolbar-field toolbar-user-field">
           <label htmlFor="acting-user">User</label>
           <select id="acting-user" className="control" value={userId} disabled={hasUnsavedChanges} onChange={(event) => onUserChange(event.target.value)}>
@@ -72,10 +73,11 @@ export const AppHeader = ({
             </div>
           ) : null}
         </div>
-        {selectedRequest ? <p className="toolbar-scenario">{selectedRequest.scenario}</p> : <span />}
-        <div className="toolbar-actions">
-          {requestCaseId ? <button className="button" onClick={onStartNewRequest} disabled={hasUnsavedChanges}>New request</button> : null}
-        </div>
+        {requestCaseId ? (
+          <div className="toolbar-actions">
+            <button className="button" onClick={onStartNewRequest} disabled={hasUnsavedChanges}>New request</button>
+          </div>
+        ) : null}
       </div>
     </header>
   );

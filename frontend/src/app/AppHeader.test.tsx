@@ -67,4 +67,24 @@ describe("AppHeader", () => {
     expect((screen.getByLabelText("User") as HTMLSelectElement).disabled).toBe(true);
     expect((screen.getByRole("button", { name: "New request" }) as HTMLButtonElement).disabled).toBe(true);
   });
+
+  it("omits empty request metadata and actions for a new request", () => {
+    const { container } = render(
+      <AppHeader
+        hasUnsavedChanges={false}
+        onRequestChange={vi.fn()}
+        onStartNewRequest={vi.fn()}
+        onUserChange={vi.fn()}
+        requestCaseId=""
+        requests={requests}
+        userId="risk"
+        users={users}
+      />
+    );
+
+    expect(screen.getByRole("option", { name: "Open an existing request" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "New request" })).toBeNull();
+    expect(container.querySelector(".toolbar-scenario")).toBeNull();
+    expect(container.querySelector(".toolbar-actions")).toBeNull();
+  });
 });
