@@ -23,6 +23,8 @@ export const companyProfilePage = {
 		{
 			id: 'companyStage',
 			type: 'field',
+			// DEMO: replace radioGroup with dropdown to show renderer swapping through config.
+			// component: 'dropdown',
 			component: 'radioGroup',
 			dataPath: 'company.stage',
 			label: 'Company Stage',

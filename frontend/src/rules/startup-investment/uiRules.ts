@@ -6,6 +6,17 @@ import { pendingRiskApprovalStates, riskWorkflowStates } from "./workflowStates"
  * startup-investment UI configuration. These rules describe UI state, not user authority.
  */
 export const startupInvestmentUiRules = {
+  // DEMO: uncomment to make the Risk Indicators page conditional.
+  // showRiskIndicators: {
+  //   description: "Risk indicators apply to early-stage companies.",
+  //   rule: { path: "requestData.company.stage", op: "in", value: ["SEED", "PRE_REVENUE"] },
+  // },
+  // DEMO: uncomment with isLargeInvestment in derivedFacts.ts to drive the
+  // Planned Use of Funds required marker from a reusable business fact.
+  // requireUseOfFundsForLargeInvestment: {
+  //   description: "Large investments require a planned use of funds.",
+  //   rule: { path: "derived.isLargeInvestment", op: "eq", value: true },
+  // },
   showOtherCompanySector: {
     description: "The exact industry sector is needed when Other is selected.",
     rule: { path: "requestData.company.sector", op: "eq", value: "OTHER" },

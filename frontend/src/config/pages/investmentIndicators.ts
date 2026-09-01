@@ -4,6 +4,8 @@ export const investmentIndicatorsPage = {
   id: "investmentIndicators",
   label: "Risk Indicators",
   type: "page",
+  // DEMO: replace null with "showRiskIndicators" to hide this page for later-stage companies.
+  // visibleRule: "showRiskIndicators",
   visibleRule: null,
   enabledRule: "canEditInvestmentReview",
   required: false,

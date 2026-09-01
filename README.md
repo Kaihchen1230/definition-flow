@@ -133,6 +133,8 @@ The POC currently includes:
 
 ## Demo Flow
 
+For a timed tech-lead walkthrough, optional live-edit examples, expected questions, and recovery steps, see [docs/tech-lead-demo.md](docs/tech-lead-demo.md).
+
 1. Start backend with H2 or Postgres.
 2. Run `./scripts/load-definitions.sh startup-investment`.
 3. Run `./scripts/reset-demo-data.sh`.

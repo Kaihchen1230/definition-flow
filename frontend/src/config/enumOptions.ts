@@ -38,6 +38,8 @@ export const enumOptions: Record<string, EnumOption[]> = {
     { value: "FINTECH", label: "FinTech" },
     { value: "HEALTHCARE", label: "Healthcare" },
     { value: "INFRASTRUCTURE", label: "Infrastructure" },
+    // DEMO: uncomment to show that option catalogs are configuration-owned.
+    // { value: "CLIMATE_TECH", label: "Climate Tech" },
     { value: "OTHER", label: "Other" },
   ],
   "company.incorporated": yesNoNa(),

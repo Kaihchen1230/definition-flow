@@ -37,6 +37,21 @@ export const startupInvestmentValidationRules = {
   investmentAmountRequired: required("Investment amount is mandatory throughout approval.", "investmentTerms", "investmentAmount", "requestData.investment.amount", "Investment amount is required."),
   investmentInstrumentRequired: required("Investment instrument is mandatory throughout approval.", "investmentTerms", "investmentInstrument", "requestData.investment.instrument", "Investment instrument is required."),
   investmentUseOfFundsRequired: required("Use of funds is mandatory throughout approval.", "investmentTerms", "useOfFunds", "requestData.investment.useOfFunds", "Use of funds is required."),
+  // DEMO: comment out investmentUseOfFundsRequired above and uncomment this
+  // rule so only large investments are blocked when use of funds is empty.
+  // useOfFundsRequiredForLargeInvestment: validation(
+  //   "Large investments require a planned use of funds.",
+  //   ["submit", "riskSubmit", "approve"],
+  //   "investmentTerms",
+  //   "useOfFunds",
+  //   {
+  //     or: [
+  //       { not: { rule: "requireUseOfFundsForLargeInvestment" } },
+  //       { path: "requestData.investment.useOfFunds", op: "notEmpty" },
+  //     ],
+  //   },
+  //   "Describe the planned use of funds for investments of $5 million or more.",
+  // ),
   foundersRequired: validation("A startup investment request needs at least one founder.", ["submit", "riskSubmit", "approve"], "foundersOwnership", "foundersTable", { path: "requestData.founders", op: "minCount", value: 1 }, "At least one founder is required."),
   founderDetailsRequired: validation("Every founder must have all mandatory details.", ["submit", "riskSubmit", "approve"], "foundersOwnership", "foundersTable", { allItems: { path: "requestData.founders", rule: { and: [{ path: "$item.name", op: "notEmpty" }, { path: "$item.title", op: "notEmpty" }, { path: "$item.ownershipPercent", op: "notEmpty" }, { path: "$item.backgroundCheck", op: "notEmpty" }] } } }, "Every founder requires a name, title, ownership percentage, and background-check completion status."),
   exceptionDetailsRequired: validation("Every exception must have a description and severity.", ["submit", "riskSubmit", "approve"], "riskExceptions", null, { allItems: { path: "requestData.exceptions", rule: { and: [{ path: "$item.description", op: "notEmpty" }, { path: "$item.severity", op: "notEmpty" }] } } }, "Every exception requires a description and severity."),
