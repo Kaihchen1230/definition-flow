@@ -56,6 +56,13 @@ class RequestCaseApiIntegrationTest {
         mockMvc.perform(get("/api/dev/demo/users"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(10)))
+                .andExpect(jsonPath("$[0].id").value("analyst"))
+                .andExpect(jsonPath("$[0].entitlements", hasSize(2)))
+                .andExpect(jsonPath("$[1].id").value("investment-approver-l1"))
+                .andExpect(jsonPath("$[1].entitlements", hasSize(1)))
+                .andExpect(jsonPath("$[3].entitlements", hasItem("DECLINE_REQUEST")))
+                .andExpect(jsonPath("$[4].entitlements", hasItem("WITHDRAW_REQUEST")))
+                .andExpect(jsonPath("$[8].entitlements", hasItem("DECLINE_REQUEST")))
                 .andExpect(jsonPath("$[*].id", hasItem("investment-approver-l3")))
                 .andExpect(jsonPath("$[*].id", hasItem("risk-approver-l4")));
     }

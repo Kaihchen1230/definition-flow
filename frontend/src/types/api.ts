@@ -4,6 +4,7 @@ export type User = {
   id: string;
   displayName: string;
   role: string;
+  entitlements: string[];
 };
 
 export type DemoRequest = {

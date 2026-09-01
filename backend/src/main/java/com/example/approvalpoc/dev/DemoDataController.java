@@ -11,11 +11,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/dev/demo")
 public class DemoDataController {
     private final DemoDataService demoDataService;
-    private final DemoUserRepository userRepository;
 
-    public DemoDataController(DemoDataService demoDataService, DemoUserRepository userRepository) {
+    public DemoDataController(DemoDataService demoDataService) {
         this.demoDataService = demoDataService;
-        this.userRepository = userRepository;
     }
 
     @PostMapping("/reset")
@@ -24,8 +22,8 @@ public class DemoDataController {
     }
 
     @GetMapping("/users")
-    public List<DemoUserEntity> users() {
-        return userRepository.findAll();
+    public List<DemoUserSummary> users() {
+        return demoDataService.users();
     }
 
     @GetMapping("/requests")

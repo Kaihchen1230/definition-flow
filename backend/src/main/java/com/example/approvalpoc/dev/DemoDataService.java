@@ -8,6 +8,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -21,6 +23,18 @@ public class DemoDataService {
     public static final UUID MATERIAL_EXCEPTION_REQUEST_ID = UUID.fromString("33333333-3333-3333-3333-333333333333");
     private static final List<UUID> DEMO_REQUEST_IDS = List.of(DEMO_REQUEST_ID, STANDARD_REQUEST_ID, MATERIAL_EXCEPTION_REQUEST_ID);
     private static final List<String> LEGACY_DEMO_USER_IDS = List.of("investment-approver", "risk-approver");
+    private static final List<String> DEMO_USER_IDS = List.of(
+            "analyst",
+            "investment-approver-l1",
+            "investment-approver-l2",
+            "investment-approver-l3",
+            "risk-officer",
+            "risk-approver-l1",
+            "risk-approver-l2",
+            "risk-approver-l3",
+            "risk-approver-l4",
+            "support"
+    );
     private final DemoUserRepository userRepository;
     private final RequestCaseRepository requestCaseRepository;
     private final CalculationResultRepository calculationResultRepository;
@@ -65,7 +79,20 @@ public class DemoDataService {
     public int syncUsers() {
         userRepository.deleteAllById(LEGACY_DEMO_USER_IDS);
         seedUsers();
-        return 10;
+        return DEMO_USER_IDS.size();
+    }
+
+    public List<DemoUserSummary> users() {
+        return userRepository.findAll().stream()
+                .sorted(Comparator.comparingInt((DemoUserEntity user) -> userOrder(user.getId()))
+                        .thenComparing(DemoUserEntity::getDisplayName))
+                .map(user -> new DemoUserSummary(
+                        user.getId(),
+                        user.getDisplayName(),
+                        user.getRole(),
+                        readStringList(user.getEntitlements())
+                ))
+                .toList();
     }
 
     public List<DemoRequestSummary> requests() {
@@ -110,20 +137,20 @@ public class DemoDataService {
                 writeJson(List.of("EDIT_INVESTMENT_REQUEST", "WITHDRAW_REQUEST")),
                 writeJson(List.of("InvestmentTeam"))
         ));
-        seedApprover("investment-approver-l1", "Iris Investment Approver · L1", "InvestmentAnalyst", "APPROVE_INVESTMENT_LEVEL_1", "InvestmentTeam");
-        seedApprover("investment-approver-l2", "Imani Investment Approver · L2", "InvestmentAnalyst", "APPROVE_INVESTMENT_LEVEL_2", "InvestmentTeam");
-        seedApprover("investment-approver-l3", "Ivan Investment Approver · L3", "InvestmentAnalyst", "APPROVE_INVESTMENT_LEVEL_3", "InvestmentTeam");
+        seedApprover("investment-approver-l1", "Iris Investment Approver · L1", "InvestmentAnalyst", "APPROVE_INVESTMENT_LEVEL_1", "InvestmentTeam", false);
+        seedApprover("investment-approver-l2", "Imani Investment Approver · L2", "InvestmentAnalyst", "APPROVE_INVESTMENT_LEVEL_2", "InvestmentTeam", false);
+        seedApprover("investment-approver-l3", "Ivan Investment Approver · L3", "InvestmentAnalyst", "APPROVE_INVESTMENT_LEVEL_3", "InvestmentTeam", true);
         userRepository.save(new DemoUserEntity(
                 "risk-officer",
                 "Riley Risk Officer",
                 "RiskOfficer",
-                writeJson(List.of("EDIT_RISK_REVIEW")),
+                writeJson(List.of("EDIT_RISK_REVIEW", "WITHDRAW_REQUEST")),
                 writeJson(List.of("RiskTeam"))
         ));
-        seedApprover("risk-approver-l1", "Reese Risk Approver · L1", "RiskOfficer", "APPROVE_RISK_LEVEL_1", "RiskTeam");
-        seedApprover("risk-approver-l2", "Rina Risk Approver · L2", "RiskOfficer", "APPROVE_RISK_LEVEL_2", "RiskTeam");
-        seedApprover("risk-approver-l3", "Rafael Risk Approver · L3", "RiskOfficer", "APPROVE_RISK_LEVEL_3", "RiskTeam");
-        seedApprover("risk-approver-l4", "Rowan Risk Approver · L4", "RiskOfficer", "APPROVE_RISK_LEVEL_4", "RiskTeam");
+        seedApprover("risk-approver-l1", "Reese Risk Approver · L1", "RiskOfficer", "APPROVE_RISK_LEVEL_1", "RiskTeam", false);
+        seedApprover("risk-approver-l2", "Rina Risk Approver · L2", "RiskOfficer", "APPROVE_RISK_LEVEL_2", "RiskTeam", false);
+        seedApprover("risk-approver-l3", "Rafael Risk Approver · L3", "RiskOfficer", "APPROVE_RISK_LEVEL_3", "RiskTeam", false);
+        seedApprover("risk-approver-l4", "Rowan Risk Approver · L4", "RiskOfficer", "APPROVE_RISK_LEVEL_4", "RiskTeam", true);
         userRepository.save(new DemoUserEntity(
                 "support",
                 "Sam Support Viewer",
@@ -133,14 +160,19 @@ public class DemoDataService {
         ));
     }
 
-    private void seedApprover(String id, String displayName, String role, String entitlement, String team) {
+    private void seedApprover(String id, String displayName, String role, String entitlement, String team, boolean canDecline) {
         userRepository.save(new DemoUserEntity(
                 id,
                 displayName,
                 role,
-                writeJson(List.of(entitlement, "DECLINE_REQUEST")),
+                writeJson(canDecline ? List.of(entitlement, "DECLINE_REQUEST") : List.of(entitlement)),
                 writeJson(List.of(team))
         ));
+    }
+
+    private int userOrder(String userId) {
+        int index = DEMO_USER_IDS.indexOf(userId);
+        return index >= 0 ? index : DEMO_USER_IDS.size();
     }
 
     private Map<String, Object> seedHighValueRequest() {
@@ -276,6 +308,12 @@ public class DemoDataService {
         } catch (JsonProcessingException e) {
             throw new IllegalStateException("Could not read demo JSON", e);
         }
+    }
+
+    private List<String> readStringList(String json) {
+        List<String> values = new ArrayList<>();
+        readJson(json).forEach(value -> values.add(value.asText()));
+        return List.copyOf(values);
     }
 
     private String writeJson(Object value) {
