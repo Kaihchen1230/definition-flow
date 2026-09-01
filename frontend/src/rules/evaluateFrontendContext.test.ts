@@ -111,6 +111,25 @@ describe("evaluateFrontendContext", () => {
     expect(evaluateFrontendContext(data).ruleResults.companyProfileRiskNoteRequired.result).toBe(true);
   });
 
+  it("requires an exact industry description only when Other is selected", () => {
+    const data = raw("InvestmentAnalyst");
+    data.workflowState = "INVESTMENT_REVIEW";
+    data.requestData.company.sector = "OTHER";
+
+    const missingDescription = evaluateFrontendContext(data);
+    expect(missingDescription.ruleResults.showOtherCompanySector.result).toBe(true);
+    expect(missingDescription.ruleResults.companySectorOtherRequired.result).toBe(false);
+    expect(missingDescription.validation.submit.map((issue) => issue.ruleId)).toContain("companySectorOtherRequired");
+
+    data.requestData.company.sectorOther = "Space logistics";
+    expect(evaluateFrontendContext(data).ruleResults.companySectorOtherRequired.result).toBe(true);
+
+    data.requestData.company.sector = "AI";
+    const standardSector = evaluateFrontendContext(data);
+    expect(standardSector.ruleResults.showOtherCompanySector.result).toBe(false);
+    expect(standardSector.ruleResults.companySectorOtherRequired.result).toBe(true);
+  });
+
   it("keeps risk-only rules unavailable to an investment analyst", () => {
     const result = evaluateFrontendContext(raw("InvestmentAnalyst"));
     expect(result.ruleResults.showRiskOfficerConfirmations.result).toBe(false);

@@ -107,16 +107,29 @@ describe("App request creation", () => {
     expect(createCalls).toBe(0);
 
     await user.type(screen.getByRole("textbox", { name: /Company Name/ }), "Acme Robotics");
-    await user.click(screen.getByRole("radio", { name: "Seed" }));
+    const stageControl = screen.queryByRole("combobox", { name: /Company Stage/ });
+    if (stageControl instanceof HTMLSelectElement) {
+      await user.selectOptions(stageControl, "SEED");
+    } else if (stageControl) {
+      await user.click(stageControl);
+      await user.click(screen.getByRole("option", { name: "Seed" }));
+    } else {
+      await user.click(screen.getByRole("radio", { name: "Seed" }));
+    }
     const sectorControl = screen.getByRole("combobox", { name: /Sector/ });
     if (sectorControl instanceof HTMLSelectElement) {
-      await user.selectOptions(sectorControl, "AI");
+      await user.selectOptions(sectorControl, "OTHER");
     } else {
       await user.click(sectorControl);
-      await user.click(screen.getByRole("option", { name: "AI" }));
+      await user.click(screen.getByRole("option", { name: "Other" }));
     }
     fireEvent.change(screen.getByLabelText(/Date Founded/), { target: { value: "2024-01-01" } });
     await user.click(screen.getByRole("radio", { name: "Yes" }));
+    await user.click(screen.getByRole("button", { name: /Create request/ }));
+    expect(screen.getByText("Complete the highlighted fields before creating the request.")).toBeTruthy();
+    expect(createCalls).toBe(0);
+
+    await user.type(screen.getByRole("textbox", { name: /Specify Industry Sector/ }), "Space logistics");
     await user.click(screen.getByRole("button", { name: /Create request/ }));
 
     await waitFor(() => expect(requestCatalogCalls).toBeGreaterThan(1));
@@ -125,7 +138,8 @@ describe("App request creation", () => {
     expect(patchBodies).toEqual([{ updates: [
       { path: "company.name", value: "Acme Robotics" },
       { path: "company.stage", value: "SEED" },
-      { path: "company.sector", value: "AI" },
+      { path: "company.sector", value: "OTHER" },
+      { path: "company.sectorOther", value: "Space logistics" },
       { path: "company.foundedDate", value: "2024-01-01" },
       { path: "company.incorporated", value: "YES" },
     ] }]);

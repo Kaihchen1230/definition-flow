@@ -2,6 +2,7 @@ export const startupInvestmentDataPaths = new Set([
   "company.name",
   "company.stage",
   "company.sector",
+  "company.sectorOther",
   "company.foundedDate",
   "company.incorporated",
   "investment.amount",

@@ -43,6 +43,18 @@ export const companyProfilePage = {
 			requiredRule: null,
 		},
 		{
+			id: 'companySectorOther',
+			type: 'field',
+			component: 'textInput',
+			dataPath: 'company.sectorOther',
+			label: 'Specify Industry Sector',
+			helperText: "Enter the company's primary industry.",
+			visibleRule: 'showOtherCompanySector',
+			enabledRule: 'canEditInvestmentReview',
+			required: false,
+			requiredRule: 'showOtherCompanySector',
+		},
+		{
 			id: 'companyFoundedDate',
 			type: 'field',
 			component: 'dateInput',

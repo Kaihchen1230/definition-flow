@@ -9,6 +9,8 @@ fields:
   company.sector:
     valueType: enum
     allowedValues: [AI, FINTECH, HEALTHCARE, INFRASTRUCTURE, OTHER]
+  company.sectorOther:
+    valueType: string
   company.foundedDate:
     valueType: date
   company.incorporated:

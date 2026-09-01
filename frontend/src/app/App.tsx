@@ -9,7 +9,7 @@ import {
 import { startupInvestmentUiDefinition } from "../config/uiDefinition";
 import { showEvaluationTrace } from "../config/appConstants";
 import { RequestWorkbench } from "../features/request-workbench/RequestWorkbench";
-import { companyProfileIntakeDataPaths, RequestIntake } from "../features/request-intake/RequestIntake";
+import { RequestIntake } from "../features/request-intake/RequestIntake";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { setRequestCaseId, setUserId, setSelectedPageId } from "../features/request-workbench/requestWorkbenchSlice";
 import { evaluateUiDefinition } from "../utils/evaluateUiDefinition";
@@ -40,7 +40,7 @@ export const App = () => {
     return { ...frontendEvaluation, pages: evaluateUiDefinition(flattenNavigationPages(startupInvestmentUiDefinition.groups), frontendEvaluation) };
   }, [evaluated.data]);
   const visiblePages = useMemo(() => evaluatedUi?.pages.filter((page) => page.visible) ?? [], [evaluatedUi]);
-  const createFromIntake = async (data: Record<string, any>) => {
+  const createFromIntake = async (data: Record<string, any>, dataPaths: string[]) => {
     setIntakeError(null);
     let requestId = pendingRequestId;
     try {
@@ -52,7 +52,7 @@ export const App = () => {
       const result = await patchRequest({
         requestCaseId: requestId,
         userId,
-        updates: companyProfileIntakeDataPaths.map((path) => ({ path, value: getPath(data, path) })),
+        updates: dataPaths.map((path) => ({ path, value: getPath(data, path) })),
       }).unwrap() as { success?: boolean };
       if (result.success === false) {
         throw new Error("Page patch was rejected");

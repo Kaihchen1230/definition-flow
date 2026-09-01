@@ -25,6 +25,10 @@ export const startupInvestmentRules = {
     },
   },
   uiRules: {
+    showOtherCompanySector: {
+      description: "The exact industry sector is needed when Other is selected.",
+      rule: { path: "requestData.company.sector", op: "eq", value: "OTHER" },
+    },
     showEnhancedRiskReview: {
       description: "Enhanced risk review is visible only to risk users on high-risk requests.",
       rule: { and: [{ path: "derived.investmentVariant", op: "eq", value: "HIGH_RISK" }, { path: "user.role", op: "eq", value: "RiskOfficer" }, { path: "workflow.state", op: "in", value: riskWorkflowStates() }] },
@@ -63,6 +67,7 @@ export const startupInvestmentRules = {
     companyNameRequired: required("Company name is mandatory throughout approval.", "companyProfile", "companyName", "requestData.company.name", "Company name is required."),
     companyStageRequired: required("Company stage is mandatory throughout approval.", "companyProfile", "companyStage", "requestData.company.stage", "Company stage is required."),
     companySectorRequired: required("Company sector is mandatory throughout approval.", "companyProfile", "companySector", "requestData.company.sector", "Company sector is required."),
+    companySectorOtherRequired: validation("Other sectors require an exact industry description.", ["submit", "riskSubmit", "approve"], "companyProfile", "companySectorOther", { or: [{ not: { rule: "showOtherCompanySector" } }, { path: "requestData.company.sectorOther", op: "notEmpty" }] }, "Specify the industry sector when Other is selected."),
     companyFoundedDateRequired: required("Founded date is mandatory throughout approval.", "companyProfile", "companyFoundedDate", "requestData.company.foundedDate", "Founded date is required."),
     companyIncorporatedRequired: required("Incorporation status is mandatory throughout approval.", "companyProfile", "companyIncorporated", "requestData.company.incorporated", "Incorporation status is required."),
     investmentAmountRequired: required("Investment amount is mandatory throughout approval.", "investmentTerms", "investmentAmount", "requestData.investment.amount", "Investment amount is required."),
