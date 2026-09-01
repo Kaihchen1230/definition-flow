@@ -1,6 +1,7 @@
 export type EnumOption = {
   value: string;
   label: string;
+  description?: string;
 };
 
 export const yesNoNa = (): EnumOption[] => [
@@ -41,7 +42,7 @@ export const enumOptions: Record<string, EnumOption[]> = {
   ],
   "company.incorporated": yesNoNa(),
   "investment.instrument": [
-    { value: "SAFE", label: "SAFE" },
+    { value: "SAFE", label: "SAFE", description: "Simple Agreement for Future Equity—an investment that typically converts into shares during a future financing round." },
     { value: "EQUITY", label: "Equity" },
     { value: "CONVERTIBLE_NOTE", label: "Convertible note" },
   ],

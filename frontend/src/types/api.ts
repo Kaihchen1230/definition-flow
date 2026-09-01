@@ -26,6 +26,7 @@ export type FieldConstraints = {
   min?: number;
   max?: number;
   step?: number;
+  currency?: string;
   maxDate?: "today" | string;
   allowedValues?: readonly string[];
 };

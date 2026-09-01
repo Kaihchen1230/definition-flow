@@ -53,7 +53,7 @@ Page files under `frontend/src/config/pages/` choose a renderer with the node's 
 
 `frontend/src/config/uiDefinition.ts` validates the assembled definition at startup. It rejects duplicate or empty navigation groups, duplicate node IDs, and unknown component IDs, rule references, data paths, or option catalogs. Group order followed by child-page order defines the navigation sequence. This turns a configuration typo into an immediate development error instead of a blank or incorrectly rendered field.
 
-Field behavior and user-facing guidance belong beside the field configuration. Use `helperText` for field-specific instructions, `constraints` for numeric bounds, dates such as `maxDate: "today"`, and allowed values; use `itemConstraints` and `collectionConstraints` for editable collections. Conditional collection requirements use `requiredFieldRules`. The same evaluated metadata drives HTML input limits, inline invalid styling, page completion, and workflow blocking.
+Field behavior and user-facing guidance belong beside the field configuration. Use `helperText` for field-specific instructions, option `description` for supplemental radio-choice explanations, and `constraints` for numeric bounds, currency codes, dates such as `maxDate: "today"`, and allowed values; use `itemConstraints` and `collectionConstraints` for editable collections. Currency controls format values for display while retaining numeric request data. Conditional collection requirements use `requiredFieldRules`. The same evaluated metadata drives input behavior, inline invalid styling, page completion, and workflow blocking.
 
 ## Draft and workflow safety
 

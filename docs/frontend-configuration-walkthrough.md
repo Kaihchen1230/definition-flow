@@ -86,7 +86,7 @@ Open `frontend/src/config/enumOptions.ts`:
 ],
 ```
 
-The `label` is the text shown in the UI. The `value` is stored in request data:
+The `label` is the text shown in the UI. The `value` is stored in request data. An option may also provide a concise `description`; radio groups expose that supplemental explanation through a keyboard- and touch-accessible tooltip without changing the stored value.
 
 ```json
 {
@@ -115,6 +115,7 @@ Open `frontend/src/config/pages/investmentTerms.ts`:
   constraints: {
     min: 1,
     step: 1,
+    currency: "USD",
   },
   visibleRule: null,
   enabledRule: "canEditInvestmentReview",
@@ -122,6 +123,8 @@ Open `frontend/src/config/pages/investmentTerms.ts`:
   requiredRule: null,
 }
 ```
+
+`currencyInput` displays a localized currency value when idle and a plain numeric value while focused, but continues to store a `number` (or `""` when cleared). Configure the ISO currency code explicitly rather than embedding a symbol in the label or persisted value.
 
 `Field.tsx` renders `helperText` below the configured field. Instructions should be specific to the field; avoid generic implementation language such as “editable request data.”
 

@@ -91,7 +91,7 @@ Before editing the renderer, document the internal equivalent for every current 
 |---|---|---|---|
 | `textInput` | Text input | Text field | `string` |
 | `dateInput` | Date input | Date field or date picker | ISO local date string such as `2026-08-31` |
-| `currencyInput` | Number input | Currency or numeric field | `number`, or `""` while cleared |
+| `currencyInput` | Localized currency text input with numeric keyboard hint | Currency or numeric field | `number`, or `""` while cleared |
 | `textarea` | Multiline textarea | Text area | `string` |
 | `dropdown` | Select | Select/combobox | Option `value` string |
 | `radioGroup` | Radio inputs | Radio group | Option `value` string |

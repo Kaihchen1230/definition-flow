@@ -1,6 +1,7 @@
 import { enumOptions } from "../../config/enumOptions";
 import type { UiNode } from "../../types/api";
 import { localToday } from "../../utils/fieldValidation";
+import { CurrencyInput } from "./fields/currency/CurrencyInput";
 import { DropdownControl } from "./fields/dropdown/DropdownControl";
 
 type FieldProps = {
@@ -50,12 +51,29 @@ export const Field = ({ node, value, onChange, invalid = false }: FieldProps) =>
       <div className="field">
         <span>{node.label}{node.required ? " *" : ""}</span>
         <div className="choice-grid compact" aria-describedby={describedBy}>
-          {options.map((option) => (
-            <label className="choice" key={option.value}>
-              <input type="radio" checked={value === option.value} disabled={disabled} aria-invalid={invalid} onChange={() => onChange(option.value)} />
-              {option.label}
-            </label>
-          ))}
+          {options.map((option) => {
+            const tooltipId = `${node.id}-${option.value}-description`;
+            return (
+              <div className="choice-with-help" key={option.value}>
+                <label className={`choice ${option.description ? "with-help" : ""}`}>
+                  <input type="radio" checked={value === option.value} disabled={disabled} aria-invalid={invalid} onChange={() => onChange(option.value)} />
+                  {option.label}
+                </label>
+                {option.description ? (
+                  <>
+                    <button className="choice-help" type="button" aria-label={`About ${option.label}`} aria-describedby={tooltipId}>
+                      <svg viewBox="0 0 16 16" aria-hidden="true">
+                        <circle cx="8" cy="8" r="6" />
+                        <path d="M8 7.1v4" />
+                        <path d="M8 4.7h.01" />
+                      </svg>
+                    </button>
+                    <span className="choice-tooltip" id={tooltipId} role="tooltip">{option.description}</span>
+                  </>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
         {helper}
       </div>
@@ -88,14 +106,30 @@ export const Field = ({ node, value, onChange, invalid = false }: FieldProps) =>
       </div>
     );
   }
-  const inputType = node.component === "dateInput" ? "date" : node.component === "currencyInput" ? "number" : "text";
+  if (node.component === "currencyInput") {
+    return (
+      <label className="field">
+        <span>{node.label}{node.required ? " *" : ""}</span>
+        <CurrencyInput
+          currency={node.constraints?.currency ?? "USD"}
+          value={value}
+          disabled={disabled}
+          invalid={invalid}
+          describedBy={describedBy}
+          onChange={onChange}
+        />
+        {helper}
+      </label>
+    );
+  }
+  const inputType = node.component === "dateInput" ? "date" : "text";
   const max = inputType === "date" && node.constraints?.maxDate
     ? node.constraints.maxDate === "today" ? localToday() : node.constraints.maxDate
     : node.constraints?.max;
   return (
     <label className="field">
       <span>{node.label}{node.required ? " *" : ""}</span>
-      <input className={`control ${invalid ? "is-invalid" : ""}`} type={inputType} value={value ?? ""} disabled={disabled} min={node.constraints?.min} max={max} step={node.constraints?.step} aria-invalid={invalid} aria-describedby={describedBy} onChange={(event) => onChange(inputType === "number" ? (event.target.value === "" ? "" : Number(event.target.value)) : event.target.value)} />
+      <input className={`control ${invalid ? "is-invalid" : ""}`} type={inputType} value={value ?? ""} disabled={disabled} min={node.constraints?.min} max={max} step={node.constraints?.step} aria-invalid={invalid} aria-describedby={describedBy} onChange={(event) => onChange(event.target.value)} />
       {helper}
     </label>
   );
