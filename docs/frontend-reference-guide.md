@@ -47,6 +47,8 @@ The startup investment files are executable examples of the contract. They shoul
 
 The frontend must increment `frontendRuleCatalogVersion` when a deployed rule catalog changes. RTK Query sends that version with mutations so audit events can identify which compiled frontend rules participated in the decision.
 
+Workflow actions fail closed: an action returned by the backend is hidden and disabled unless its ID is mapped to a frontend eligibility rule. Recognized IDs also receive a readable fallback label when a stale or mismatched backend returns the raw action ID as its label. Submitting a review routes it into the first selected approval queue; advancing from that queue requires the matching level approval entitlement.
+
 ## Component mapping and config validation
 
 Page files under `frontend/src/config/pages/` choose a renderer with the node's `component` property. Allowed component IDs are declared in `frontend/src/types/uiComponents.ts`; `frontend/src/features/request-renderer/componentRegistry.tsx` is the single mapping from those IDs to React renderers. Add a component in both places, then reference its ID from page config.

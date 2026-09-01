@@ -420,6 +420,8 @@ The backend determines which transitions are structurally possible. The frontend
 
 When deployed frontend rule behavior changes, increment `frontendRuleCatalogVersion` in `frontend/src/config/appConstants.ts`.
 
+Every backend workflow action ID must also appear in `startupInvestmentWorkflowActionRules`. Unmapped IDs deliberately fail closed, so an outdated backend definition cannot bypass frontend eligibility checks. The frontend supplies readable fallback labels for recognized action IDs if the backend returns an ID as display text.
+
 The frontend sends this version with mutations so audit events can record which compiled frontend rule catalog participated in a decision. Label-only or documentation-only changes do not normally require a rule-catalog version increment.
 
 ## Verification
