@@ -44,6 +44,17 @@ const levelCapabilities = (area: "Investment" | "Risk", editorRule: string, path
  * state. UI editability and workflow-action mappings reference these rule IDs.
  */
 export const startupInvestmentCapabilities = {
+  // DEMO: uncomment this rule, then point investmentAmount.enabledRule to it.
+  // canEditInvestmentAmount: {
+  //   description: "Investment analysts can edit the amount only during investment review.",
+  //   rule: {
+  //     and: [
+  //       { path: "workflow.state", op: "eq", value: "INVESTMENT_REVIEW" },
+  //       { path: "user.role", op: "eq", value: "InvestmentAnalyst" },
+  //       { path: "user.entitlements", op: "contains", value: "EDIT_INVESTMENT_REQUEST" },
+  //     ],
+  //   },
+  // },
   canEditInvestmentReview: {
     description: "Investment users can edit the request before it moves to risk review.",
     rule: { and: [{ path: "workflow.state", op: "in", value: ["DRAFT", "INVESTMENT_REVIEW"] }, { path: "user.entitlements", op: "contains", value: "EDIT_INVESTMENT_REQUEST" }] },
