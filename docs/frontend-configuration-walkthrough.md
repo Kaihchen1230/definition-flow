@@ -98,6 +98,19 @@ The `label` is the text shown in the UI. The `value` is stored in request data. 
 
 If the backend data schema restricts the allowed values, add `CLIMATE_TECH` to `definitions/startup-investment/data-schema.yaml` as well.
 
+### Add a Conditional “Other” Detail Field
+
+The Company Profile demonstrates a complete conditional-field setup. When `company.sector` is `OTHER`, the UI displays `company.sectorOther` and requires an exact industry description.
+
+The behavior is connected in four places:
+
+1. `startupInvestmentRules.ts` defines `showOtherCompanySector` from the selected sector and a blocking `companySectorOtherRequired` validation rule.
+2. `companyProfile.ts` assigns the same UI rule to both `visibleRule` and `requiredRule` on the text field. This keeps visibility, the required marker, and page completion synchronized.
+3. `startupInvestmentDataPaths.ts` and `data-schema.yaml` declare the persisted `company.sectorOther` path.
+4. Request intake derives its page patch from visible evaluated nodes, so the conditional path is included only while the field is displayed.
+
+Use `required: false` for the field itself because its requirement is conditional. A validation rule is still necessary to block workflow submission, risk submission, and approval when `OTHER` is selected without a description. Increment `frontendRuleCatalogVersion` whenever this rule behavior changes.
+
 ## 3. Change a Label or Helper Text
 
 Example: explain what the investment amount represents.

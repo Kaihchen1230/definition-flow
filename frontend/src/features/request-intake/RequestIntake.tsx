@@ -1,8 +1,9 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { companyProfilePage } from "../../config/pages/companyProfile";
-import type { EvaluationContext } from "../../types/api";
+import { evaluateFrontendContext } from "../../rules/evaluateFrontendContext";
 import { evaluateUiDefinition } from "../../utils/evaluateUiDefinition";
 import { evaluatePageCompletion } from "../../utils/pageCompletion";
+import { collectDataPaths } from "../../utils/uiNode";
 import { RenderNode } from "../request-renderer/RenderNode";
 
 type RequestIntakeProps = {
@@ -10,12 +11,8 @@ type RequestIntakeProps = {
   userRole: string;
   pending: boolean;
   error: string | null;
-  onCreate: (data: Record<string, any>) => Promise<void>;
+  onCreate: (data: Record<string, any>, dataPaths: string[]) => Promise<void>;
 };
-
-export const companyProfileIntakeDataPaths = companyProfilePage.children
-  .map((node) => node.dataPath)
-  .filter((path): path is string => Boolean(path));
 
 export const RequestIntake = ({ userId, userRole, pending, error, onCreate }: RequestIntakeProps) => {
   const [draft, setDraft] = useState<Record<string, any>>({});
@@ -29,7 +26,7 @@ export const RequestIntake = ({ userId, userRole, pending, error, onCreate }: Re
     if (!completion.complete) {
       return;
     }
-    await onCreate(draft);
+    await onCreate(draft, collectDataPaths(page));
   };
 
   return (
@@ -49,7 +46,7 @@ export const RequestIntake = ({ userId, userRole, pending, error, onCreate }: Re
         <div className="intake-form-head">
           <div>
             <h3>Company profile</h3>
-            <p>All five fields are required to create the request.</p>
+            <p>Complete every visible required field to create the request.</p>
           </div>
           <span className="draft-chip">New draft</span>
         </div>
@@ -88,7 +85,7 @@ export const RequestIntake = ({ userId, userRole, pending, error, onCreate }: Re
   );
 };
 
-const intakeEvaluationContext = (requestData: Record<string, any>): EvaluationContext => ({
+const intakeEvaluationContext = (requestData: Record<string, any>) => evaluateFrontendContext({
   requestCaseId: "new",
   requestType: "startupInvestment",
   workflowState: "DRAFT",
@@ -96,15 +93,7 @@ const intakeEvaluationContext = (requestData: Record<string, any>): EvaluationCo
   requestData,
   calculations: {},
   definitionVersions: {},
-  derived: { investmentVariant: "STANDARD" },
-  canSave: true,
-  ruleResults: {
-    canEditInvestmentReview: { result: true, trace: [] },
-    showRiskOfficerConfirmations: { result: false, trace: [] },
-    showCompanyProfileRiskNote: { result: false, trace: [] },
-  },
   workflowActions: [],
-  validation: { render: [], submit: [], riskSubmit: [], approve: [] },
 });
 
 const ArrowIcon = () => (
